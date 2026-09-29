@@ -1,0 +1,22 @@
+[
+  {
+    "id": "style_elegant",
+    "name": "Thanh lịch",
+    "description": "Màu sắc nhã nhặn, ít họa tiết rườm rà, phom dáng gọn gàng."
+  },
+  {
+    "id": "style_vibrant",
+    "name": "Rực rỡ",
+    "description": "Màu sắc nổi bật (đỏ, vàng, hồng), phối màu tương phản mạnh."
+  },
+  {
+    "id": "style_strict_traditional",
+    "name": "Chuẩn cổ",
+    "description": "Bám sát 100% nguyên mẫu lịch sử, không pha trộn phụ kiện hiện đại."
+  },
+  {
+    "id": "style_modern_remix",
+    "name": "Cách tân đương đại",
+    "description": "Kết hợp Việt phục với hơi thở hiện đại (ví dụ: mặc Áo Tấc phối với kính râm hoặc giày boots)."
+  }
+]

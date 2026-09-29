@@ -1,0 +1,22 @@
+[
+  {
+    "rule_id": "rule_color_royal",
+    "category": "hierarchy",
+    "rule_text": "Tuyệt đối không gợi ý trang phục có màu 'Vàng chính sắc' (Hoàng thổ) và họa tiết 'Rồng 5 móng' cho các vai trò dân thường hoặc khách mời. Đây là đặc quyền của Vua."
+  },
+  {
+    "rule_id": "rule_layering_aotac",
+    "category": "technical",
+    "rule_text": "Khi mặc Áo Tấc hoặc Áo Ngũ Thân, bắt buộc phải có áo lót (áo trắng mỏng) mặc bên trong (lộ cổ áo). Không được gợi ý mặc trần."
+  },
+  {
+    "rule_id": "rule_remix_boundary",
+    "category": "remix",
+    "rule_text": "Cho phép kết hợp phụ kiện hiện đại (túi xách, giày) với trang phục cổ trong hoàn cảnh 'Dạo phố du xuân' hoặc phong cách 'Cách tân đương đại'. Tuy nhiên, CẤM kết hợp phụ kiện hiện đại trong hoàn cảnh 'Lễ hội cung đình'."
+  },
+  {
+    "rule_id": "rule_mourning_colors",
+    "category": "taboo",
+    "rule_text": "Không gợi ý toàn bộ trang phục màu trắng tuyền hoặc đen tuyền (như đồ tang lễ) cho hoàn cảnh 'Đám cưới truyền thống' hoặc 'Dạo phố du xuân' trừ khi đó là màu điểm xuyết."
+  }
+]

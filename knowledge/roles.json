@@ -1,0 +1,22 @@
+[
+  {
+    "id": "role_student",
+    "name": "Sinh viên / Sĩ tử",
+    "description": "Người đi học, tầng lớp tri thức trẻ."
+  },
+  {
+    "id": "role_main_character",
+    "name": "Nhân vật chính (Tân lang/Tân nương)",
+    "description": "Tâm điểm của sự kiện, được phép mặc những trang phục cầu kỳ và lộng lẫy nhất."
+  },
+  {
+    "id": "role_guest",
+    "name": "Khách mời / Dân thường",
+    "description": "Người tham dự, trang phục cần lịch sự nhưng không được lấn át nhân vật chính."
+  },
+  {
+    "id": "role_noble",
+    "name": "Vương tôn quý tộc",
+    "description": "Thuộc tầng lớp thống trị, sử dụng các chất liệu cao cấp và hoa văn rồng phượng, chim muông."
+  }
+]

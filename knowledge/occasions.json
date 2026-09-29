@@ -1,0 +1,22 @@
+[
+  {
+    "id": "occ_graduation",
+    "name": "Lễ Tốt nghiệp",
+    "description": "Sự kiện học thuật mang tính bước ngoặt. Cần sự trang trọng, thanh lịch nhưng vẫn thể hiện được sức trẻ."
+  },
+  {
+    "id": "occ_spring_walk",
+    "name": "Dạo phố du xuân",
+    "description": "Hoạt động vui chơi, lễ hội ngoài trời. Ưu tiên sự thoải mái, rực rỡ và có thể phá cách (remix) nhiều hơn."
+  },
+  {
+    "id": "occ_wedding",
+    "name": "Đám cưới truyền thống",
+    "description": "Nghi lễ trọng đại. Đòi hỏi sự chỉn chu tuyệt đối, trang nghiêm và rực rỡ, tuân thủ nghiêm ngặt các quy tắc về hỉ sự."
+  },
+  {
+    "id": "occ_royal_court",
+    "name": "Lễ hội cung đình",
+    "description": "Không gian mô phỏng cung đình xưa. Yêu cầu tính lịch sử cao nhất, phân biệt rõ ràng các giai cấp và quy tắc ăn mặc."
+  }
+]
