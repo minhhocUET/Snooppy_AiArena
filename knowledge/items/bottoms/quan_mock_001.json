@@ -1,0 +1,15 @@
+{
+  "id": "quan_mock_001",
+  "category": "bottom",
+  "name": "Quần Lụa Trắng Test",
+  "metadata": {
+    "colors": ["white"],
+    "styles": ["style_elegant"],
+    "occasions": ["occ_graduation", "occ_spring_walk"]
+  },
+  "culture": {
+    "origin": "Truyền thống",
+    "characteristics": "Quần ống rộng, lụa mềm",
+    "meaning": "Trang phục lót bắt buộc mặc kèm bên trong Áo Ngũ Thân."
+  }
+}

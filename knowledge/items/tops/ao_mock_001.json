@@ -1,0 +1,15 @@
+{
+  "id": "ao_mock_001",
+  "category": "top",
+  "name": "Áo Tấc Test",
+  "metadata": {
+    "colors": ["blue"],
+    "styles": ["style_elegant"],
+    "occasions": ["occ_graduation"]
+  },
+  "culture": {
+    "origin": "Thời Nguyễn",
+    "characteristics": "Tay thụng, cổ đứng, tà áo chắp",
+    "meaning": "Áo lễ trang trọng dùng trong các dịp đại sự."
+  }
+}
