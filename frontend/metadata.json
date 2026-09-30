@@ -1,0 +1,8 @@
+{
+  "name": "SS - Snoopy Stylist",
+  "description": "Ứng dụng thử đồ ảo 2D và tư vấn phối đồ phong cách thời trang cùng Snoopy và Gemini AI",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
