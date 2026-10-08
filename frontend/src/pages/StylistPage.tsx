@@ -1,221 +1,162 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  EventOption,
-  FashionItem,
+  AvatarScene,
+  AvatarPreset,
+  BackgroundPreset,
+  CatalogDiagnostics,
+  Context,
+  Item,
   ItemCategory,
-  SnoopyOutfit,
-  GeminiRecommendation,
-  ModelGender
+  KnowledgeOption,
+  Outfit,
+  OutfitSlot,
 } from '../types';
-import { EVENTS_DATA, INITIAL_ITEMS } from '../data/mockItems';
-import { HumanModel2D } from '../components/HumanModel2D';
 import { PlayingCardItem } from '../components/PlayingCardItem';
 import { ItemDetailModal } from '../components/ItemDetailModal';
-import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { AvatarRenderer, isRenderLayerAllowedForSlot } from '../components/avatar/AvatarRenderer';
+import { AVATAR_PRESETS, BACKGROUND_PRESETS } from '../data/renderPresets';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { CatalogApiError, getCatalogItems, getCatalogOptions } from '../services/catalogApi';
 
-const CATEGORIES: { id: ItemCategory; label: string }[] = [
-  { id: 'ao', label: 'Áo' },
-  { id: 'quan', label: 'Quần' },
-  { id: 'giay', label: 'Giày/Dép' },
-  { id: 'phukien', label: 'Phụ Kiện' }
+const CATEGORIES: { id: OutfitSlot; label: string; catalogCategory: ItemCategory }[] = [
+  { id: 'top', label: 'Áo', catalogCategory: 'top' },
+  { id: 'underlayer', label: 'Lớp lót', catalogCategory: 'top' },
+  { id: 'bottom', label: 'Quần', catalogCategory: 'bottom' },
+  { id: 'shoes', label: 'Giày', catalogCategory: 'shoes' },
+  { id: 'bag', label: 'Túi', catalogCategory: 'bag' },
+  { id: 'accessory', label: 'Phụ kiện', catalogCategory: 'accessory' }
 ];
 
-const ITEMS_PER_PAGE = 5;
+const EMPTY_OUTFIT: Outfit = {
+  top: null,
+  underlayer: null,
+  bottom: null,
+  shoes: null,
+  bag: null,
+  accessory: null,
+};
+
+const MVP_DEMO_DEFAULT_CONTEXT: Context = {
+  occasionId: 'occ_graduation',
+  roleId: 'role_student',
+  styleId: 'style_elegant',
+};
 
 export const StylistPage: React.FC = () => {
   const navigate = useNavigate();
 
-  // State: Events and Catalog
-  const [events, setEvents] = useState<EventOption[]>(EVENTS_DATA);
-  const [selectedEventId, setSelectedEventId] = useState<string>('cafe_street');
-  const [items, setItems] = useState<FashionItem[]>(INITIAL_ITEMS);
-  const [selectedCategory, setSelectedCategory] = useState<ItemCategory>('ao');
-  const [modelGender, setModelGender] = useState<ModelGender>('nam');
-
-  // State: Outfit on Human Model
-  const [outfit, setOutfit] = useState<SnoopyOutfit>({
-    ao: INITIAL_ITEMS.find((i) => i.id === 'ao_001') || null,
-    quan: INITIAL_ITEMS.find((i) => i.id === 'quan_001') || null,
-    giay: INITIAL_ITEMS.find((i) => i.id === 'giay_001') || null,
-    phukien: null
-  });
+  // Canonical scene and outfit state; selections are IDs only.
+  const [items, setItems] = useState<Item[]>([]);
+  const [catalogDiagnostics, setCatalogDiagnostics] = useState<CatalogDiagnostics | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [isCatalogLoading, setIsCatalogLoading] = useState<boolean>(true);
+  const [context, setContext] = useState<Context>(MVP_DEMO_DEFAULT_CONTEXT);
+  const [occasions, setOccasions] = useState<KnowledgeOption[]>([]);
+  const [roles, setRoles] = useState<KnowledgeOption[]>([]);
+  const [styles, setStyles] = useState<KnowledgeOption[]>([]);
+  const [contextError, setContextError] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<OutfitSlot>('top');
+  const [outfit, setOutfit] = useState<Outfit>(EMPTY_OUTFIT);
+  const [avatarPresetId, setAvatarPresetId] = useState<string>(AVATAR_PRESETS[0].avatarPresetId);
+  const [backgroundPresetId, setBackgroundPresetId] = useState<string>(BACKGROUND_PRESETS[0].backgroundPresetId);
 
   // State: Detail Modal
-  const [detailItem, setDetailItem] = useState<FashionItem | null>(null);
+  const [detailItem, setDetailItem] = useState<Item | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  // State: Gemini AI Prompt & Advice
-  const [userPrompt, setUserPrompt] = useState<string>('');
-  const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
-  const [aiNote, setAiNote] = useState<string>('');
-
-  // State: Row Pagination Indices (0-indexed for 5 items per row view)
-  const [suitablePageIndex, setSuitablePageIndex] = useState<number>(0);
-  const [unsuitablePageIndex, setUnsuitablePageIndex] = useState<number>(0);
-
-  // Fetch events on mount
   useEffect(() => {
-    fetch('/api/events')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.data) setEvents(data.data);
+    let active = true;
+    setIsCatalogLoading(true);
+    getCatalogItems()
+      .then((response) => {
+        if (!active) return;
+        setItems(response.data);
+        setCatalogDiagnostics(response.diagnostics);
+        setCatalogError(null);
       })
-      .catch(() => {
-        setEvents(EVENTS_DATA);
+      .catch((error: CatalogApiError) => {
+        if (!active) return;
+        setItems([]);
+        setCatalogDiagnostics(error.diagnostics ?? null);
+        setCatalogError(error.code === 'CATALOG_BLOCKED'
+          ? 'Catalog đang bị chặn do knowledge data chưa đủ trường canonical.'
+          : 'Không thể tải catalog từ máy chủ.');
+      })
+      .finally(() => {
+        if (active) setIsCatalogLoading(false);
       });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  // Fetch items whenever event changes
   useEffect(() => {
-    fetch(`/api/items?event=${selectedEventId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.data) {
-          setItems(data.data);
-        }
+    let active = true;
+    Promise.all([
+      getCatalogOptions('occasions'),
+      getCatalogOptions('roles'),
+      getCatalogOptions('styles'),
+    ])
+      .then(([occasionResponse, roleResponse, styleResponse]) => {
+        if (!active) return;
+        setOccasions(occasionResponse.data);
+        setRoles(roleResponse.data);
+        setStyles(styleResponse.data);
+        setContextError(null);
       })
       .catch(() => {
-        const currentEvent = events.find((e) => e.id === selectedEventId) || events[0];
-        const enriched = INITIAL_ITEMS.map((item) => {
-          const isDirectMatch = item.suitableEvents.includes(selectedEventId);
-          const hasTagMatch = item.tags.some((t) => currentEvent.suitableTags.includes(t));
-          const isSuitable = isDirectMatch || hasTagMatch;
-          return {
-            ...item,
-            isSuitableForCurrentEvent: isSuitable,
-            suitabilityScore: isSuitable ? 95 : 45
-          };
-        });
-        setItems(enriched);
+        if (!active) return;
+        setOccasions([]);
+        setRoles([]);
+        setStyles([]);
+        setContextError('Không thể tải các lựa chọn hoàn cảnh, vai trò và phong cách.');
       });
 
-    setSuitablePageIndex(0);
-    setUnsuitablePageIndex(0);
-  }, [selectedEventId, events]);
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  // Reset pagination when category changes
-  useEffect(() => {
-    setSuitablePageIndex(0);
-    setUnsuitablePageIndex(0);
-  }, [selectedCategory]);
+  const avatarPreset = AVATAR_PRESETS.find((preset) => preset.avatarPresetId === avatarPresetId) ?? AVATAR_PRESETS[0];
+  const background = BACKGROUND_PRESETS.find((preset) => preset.backgroundPresetId === backgroundPresetId) ?? BACKGROUND_PRESETS[0];
+  const scene: AvatarScene = {
+    avatarPresetId,
+    backgroundPresetId,
+    background,
+    outfit,
+  };
+  const selectedCategory = CATEGORIES.find((category) => category.id === selectedSlot);
+  const categoryItems = items.filter((item) =>
+    item.category === selectedCategory?.catalogCategory &&
+    isRenderLayerAllowedForSlot(selectedSlot, item.render.layer),
+  );
+  const itemsById = new Map(items.map((item) => [item.id, item]));
 
-  const currentEvent = useMemo(() => {
-    return events.find((e) => e.id === selectedEventId) || events[0];
-  }, [events, selectedEventId]);
-
-  // Filter items by category
-  const categoryItems = useMemo(() => {
-    return items.filter((item) => item.category === selectedCategory);
-  }, [items, selectedCategory]);
-
-  // Split into Suitable and Unsuitable items
-  const suitableItems = useMemo(() => {
-    return categoryItems.filter((i) => i.isSuitableForCurrentEvent !== false);
-  }, [categoryItems]);
-
-  const unsuitableItems = useMemo(() => {
-    return categoryItems.filter((i) => i.isSuitableForCurrentEvent === false);
-  }, [categoryItems]);
-
-  // 5 items per row view
-  const visibleSuitableItems = useMemo(() => {
-    const start = suitablePageIndex * ITEMS_PER_PAGE;
-    return suitableItems.slice(start, start + ITEMS_PER_PAGE);
-  }, [suitableItems, suitablePageIndex]);
-
-  const visibleUnsuitableItems = useMemo(() => {
-    const start = unsuitablePageIndex * ITEMS_PER_PAGE;
-    return unsuitableItems.slice(start, start + ITEMS_PER_PAGE);
-  }, [unsuitableItems, unsuitablePageIndex]);
-
-  const totalSuitablePages = Math.ceil(suitableItems.length / ITEMS_PER_PAGE) || 1;
-  const totalUnsuitablePages = Math.ceil(unsuitableItems.length / ITEMS_PER_PAGE) || 1;
-
-  // Click directly on item to wear/remove
-  const handleToggleItem = (item: FashionItem) => {
-    const cat = item.category;
-    if (outfit[cat]?.id === item.id) {
-      setOutfit((prev) => ({ ...prev, [cat]: null }));
-    } else {
-      setOutfit((prev) => ({ ...prev, [cat]: item }));
-    }
+  const handleToggleItem = (item: Item) => {
+    if (item.category !== selectedCategory?.catalogCategory ||
+      !isRenderLayerAllowedForSlot(selectedSlot, item.render.layer)) return;
+    setOutfit((previous) => ({
+      ...previous,
+      [selectedSlot]: previous[selectedSlot] === item.id ? null : item.id,
+    }));
   };
 
-  const handleRemoveCategory = (cat: keyof SnoopyOutfit) => {
-    setOutfit((prev) => ({ ...prev, [cat]: null }));
+  const handleRemoveSlot = (slot: OutfitSlot) => {
+    setOutfit((previous) => ({ ...previous, [slot]: null }));
   };
 
-  const handleResetOutfit = () => {
-    setOutfit({
-      ao: null,
-      quan: null,
-      giay: null,
-      phukien: null
-    });
-    setAiNote('');
-  };
+  const handleResetOutfit = () => setOutfit(EMPTY_OUTFIT);
 
-  const handleOpenDetail = (item: FashionItem) => {
+  const handleOpenDetail = (item: Item) => {
     setDetailItem(item);
     setIsModalOpen(true);
   };
 
-  // Call Gemini API to recommend outfit based on user prompt
-  const handleAskGemini = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!userPrompt.trim()) return;
-
-    setIsAiLoading(true);
-    try {
-      const response = await fetch('/api/gemini/recommend-outfit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: userPrompt,
-          eventId: selectedEventId
-        })
-      });
-
-      const data = await response.json();
-      if (data?.success && data?.data) {
-        const result: GeminiRecommendation = data.data;
-        setAiNote(result.stylistMessage || result.styleVibe || '');
-
-        if (result.matchedCategories) {
-          const newOutfit: SnoopyOutfit = { ...outfit };
-          const allItems = INITIAL_ITEMS;
-
-          if (result.matchedCategories.aoId) {
-            const item = allItems.find((i) => i.id === result.matchedCategories.aoId);
-            if (item) newOutfit.ao = item;
-          }
-          if (result.matchedCategories.quanId) {
-            const item = allItems.find((i) => i.id === result.matchedCategories.quanId);
-            if (item) newOutfit.quan = item;
-          }
-          if (result.matchedCategories.giayId) {
-            const item = allItems.find((i) => i.id === result.matchedCategories.giayId);
-            if (item) newOutfit.giay = item;
-          }
-          if (result.matchedCategories.phukienId) {
-            const item = allItems.find((i) => i.id === result.matchedCategories.phukienId);
-            if (item) newOutfit.phukien = item;
-          }
-
-          setOutfit(newOutfit);
-        }
-      }
-    } catch {
-      setAiNote('Đã gợi ý phối đồ mẫu phù hợp nhất với sự kiện này.');
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
   return (
     <div
-      className="h-screen w-screen overflow-hidden text-[#3d2714] flex flex-col select-none relative"
+      className="relative flex min-h-screen w-full flex-col select-none overflow-x-hidden text-[#3d2714] md:h-screen md:w-screen md:min-h-0 md:overflow-hidden"
       style={{
         fontFamily: "'Times New Roman', Times, serif",
         background: 'radial-gradient(circle at 50% 30%, #faf4e8 0%, #ebe0ce 100%)',
@@ -235,245 +176,200 @@ export const StylistPage: React.FC = () => {
             <span>Trang chủ</span>
           </button>
           <div className="h-3.5 w-px bg-[#8B5A2B]/30" />
-          <span className="text-xs font-bold text-[#8B5A2B] uppercase tracking-widest drop-shadow-2xs">
-            Phòng Thử Đồ Ảo • SS Stylist Studio
+          <span className="min-w-0 truncate text-xs font-bold text-[#8B5A2B] uppercase tracking-normal drop-shadow-2xs">
+            Việt Phục Remix
           </span>
         </div>
-
-        {aiNote && (
-          <div className="hidden sm:block text-xs text-[#5c3a1e] italic truncate max-w-md bg-[#f6eee2] px-2.5 py-0.5 rounded-full border border-[#8B5A2B]/25">
-            Gợi ý: {aiNote}
-          </div>
-        )}
       </header>
 
       {/* Main Studio Body: Fixed Height, Fits Perfectly In Viewport Without Page Scrolling */}
-      <div className="flex-1 flex flex-col md:flex-row p-2.5 sm:p-3.5 gap-3 overflow-hidden z-10">
-        {/* ================= KHU VỰC TRÁI (1/3 MÀN HÌNH): GỘP CHỌN SỰ KIỆN + MODEL 2D ================= */}
-        <section className="w-full md:w-[32%] lg:w-[30%] h-full flex flex-col rounded-2xl border-4 border-[#8B5A2B] bg-[#FFFDF5] shadow-[0_16px_40px_rgba(70,40,15,0.16),0_4px_12px_rgba(70,40,15,0.08)] overflow-hidden flex-shrink-0 relative">
+      <div className="z-10 flex flex-1 flex-col gap-3 overflow-y-auto p-2.5 sm:p-3.5 md:min-h-0 md:flex-row md:overflow-hidden">
+        <section className="relative flex h-[70vh] min-h-[520px] w-full flex-shrink-0 flex-col overflow-hidden rounded-2xl border-4 border-[#8B5A2B] bg-[#FFFDF5] shadow-[0_16px_40px_rgba(70,40,15,0.16),0_4px_12px_rgba(70,40,15,0.08)] md:h-full md:min-h-0 md:w-[48%] lg:w-[52%]">
           {/* Subtle decorative inner framing border */}
           <div className="absolute inset-1 rounded-xl border border-[#8B5A2B]/20 pointer-events-none" />
 
-          {/* 1. Lựa chọn Model (Nam / Nữ) & Bối cảnh sự kiện ngang hàng trên cùng 1 hàng */}
-          <div className="p-2 border-b-2 border-[#8B5A2B]/25 bg-[#f8f3e8] flex-shrink-0 z-10 shadow-xs flex items-center gap-2">
-            {/* Lựa chọn giới tính Model: Nam / Nữ */}
-            <div className="flex p-0.5 rounded-lg bg-[#ebdcc8] border border-[#8B5A2B]/35 shadow-2xs flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setModelGender('nam')}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  modelGender === 'nam'
-                    ? 'bg-[#8B5A2B] text-white shadow-xs'
-                    : 'text-[#5c3a1e] hover:text-[#3d2714]'
-                }`}
-                title="Model Nam"
-              >
-                <span>👨</span>
-                <span>Nam</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setModelGender('nu')}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  modelGender === 'nu'
-                    ? 'bg-[#8B5A2B] text-white shadow-xs'
-                    : 'text-[#5c3a1e] hover:text-[#3d2714]'
-                }`}
-                title="Model Nữ"
-              >
-                <span>👩</span>
-                <span>Nữ</span>
-              </button>
-            </div>
-
-            {/* Bối cảnh sự kiện (ngang hàng) */}
-            <div className="relative flex-1 min-w-0">
+          <div className="grid grid-cols-2 gap-2 p-3 border-b-2 border-[#8B5A2B]/25 bg-[#f8f3e8] flex-shrink-0 z-10">
+            <label className="min-w-0 text-xs font-bold text-[#5c3a1e]">
+              Avatar
               <select
-                value={selectedEventId}
-                onChange={(e) => setSelectedEventId(e.target.value)}
-                className="w-full appearance-none py-1 pl-2 pr-6 rounded-lg bg-[#FFFDF5] border border-[#8B5A2B]/40 text-xs font-semibold text-[#3d2714] focus:outline-none focus:border-[#8B5A2B] cursor-pointer shadow-[0_2px_4px_rgba(0,0,0,0.05)] truncate"
+                value={avatarPresetId}
+                onChange={(event) => setAvatarPresetId(event.target.value)}
+                className="mt-1 w-full rounded-lg bg-[#FFFDF5] border border-[#8B5A2B]/40 px-2 py-1.5 text-xs font-semibold"
               >
-                {events.map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.title}
-                  </option>
+                {AVATAR_PRESETS.map((preset) => (
+                  <option key={preset.avatarPresetId} value={preset.avatarPresetId}>{preset.name}</option>
                 ))}
               </select>
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#8B5A2B] text-[10px]">
-                ▼
-              </div>
-            </div>
+            </label>
+            <label className="min-w-0 text-xs font-bold text-[#5c3a1e]">
+              Phông nền
+              <select
+                value={backgroundPresetId}
+                onChange={(event) => setBackgroundPresetId(event.target.value)}
+                className="mt-1 w-full rounded-lg bg-[#FFFDF5] border border-[#8B5A2B]/40 px-2 py-1.5 text-xs font-semibold"
+              >
+                {BACKGROUND_PRESETS.map((preset) => (
+                  <option key={preset.backgroundPresetId} value={preset.backgroundPresetId}>{preset.name}</option>
+                ))}
+              </select>
+            </label>
           </div>
 
-          {/* 2. Model nhân vật người 2D (Nam / Nữ) + Nút làm mới nổi bật ở phía dưới */}
-          <div className="flex-1 relative overflow-hidden flex flex-col z-10">
-            <HumanModel2D
-              outfit={outfit}
-              currentEvent={currentEvent}
-              gender={modelGender}
-              onResetOutfit={handleResetOutfit}
-              onRemoveItem={handleRemoveCategory}
-            />
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 z-10">
+            <AvatarRenderer avatarPreset={avatarPreset} scene={scene} items={items} />
+            <div className="mt-3 flex items-center justify-between border-t border-[#8B5A2B]/20 pt-2">
+              <h2 className="text-xs font-bold uppercase text-[#8B5A2B]">Trang phục hiện tại</h2>
+              <button
+                type="button"
+                onClick={handleResetOutfit}
+                className="inline-flex items-center gap-1 rounded-md border border-[#8B5A2B]/30 px-2 py-1 text-xs text-[#5c3a1e] hover:bg-[#f6eee2]"
+                title="Tháo tất cả item"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Tháo tất cả
+              </button>
+            </div>
+            <ul className="mt-2 grid grid-cols-2 gap-1 text-xs">
+              {CATEGORIES.map(({ id, label }) => {
+                const itemId = outfit[id];
+                const item = itemId ? itemsById.get(itemId) : undefined;
+                return (
+                  <li key={id} className="flex min-w-0 items-center justify-between gap-1 rounded bg-[#f8f3e8] px-2 py-1">
+                    <span className="font-semibold text-[#5c3a1e]">{label}</span>
+                    <span className="truncate text-stone-600" title={item?.name ?? itemId ?? 'Chưa chọn'}>
+                      {item?.name ?? itemId ?? 'Chưa chọn'}
+                    </span>
+                    {itemId && (
+                      <button type="button" onClick={() => handleRemoveSlot(id)} className="shrink-0 text-[#8a4b38]" aria-label={`Bỏ ${label}`}>
+                        ×
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         </section>
 
-        {/* ================= KHU VỰC PHẢI (2/3 MÀN HÌNH): TÔNG MÀU BE & LÁ THƯ TRUYỀN THỐNG ================= */}
-        <section className="w-full md:w-[68%] lg:w-[70%] h-full flex flex-col rounded-2xl border-4 border-[#8B5A2B] bg-[#FFFDF5] shadow-[0_16px_40px_rgba(70,40,15,0.16),0_4px_12px_rgba(70,40,15,0.08)] p-2.5 sm:p-3 overflow-hidden flex-shrink-0 justify-between relative">
+        <section className="relative flex h-[70vh] min-h-[420px] w-full flex-shrink-0 flex-col overflow-hidden rounded-2xl border-4 border-[#8B5A2B] bg-[#FFFDF5] p-3 shadow-[0_16px_40px_rgba(70,40,15,0.16),0_4px_12px_rgba(70,40,15,0.08)] md:h-full md:min-h-0 md:w-[52%] lg:w-[48%]">
           {/* Subtle decorative inner framing border */}
           <div className="absolute inset-1 rounded-xl border border-[#8B5A2B]/20 pointer-events-none" />
 
-          {/* 1. KHU VỰC NHỎ NHẬP YÊU CẦU TRÊN CÙNG (GEMINI AI) */}
-          <div className="flex-shrink-0 mb-2 z-10">
-            <form onSubmit={handleAskGemini} className="flex gap-2">
-              <input
-                type="text"
-                value={userPrompt}
-                onChange={(e) => setUserPrompt(e.target.value)}
-                placeholder="Nhập yêu cầu trang phục cho Gemini (VD: Phong cách thanh lịch cho buổi hẹn hò)..."
-                className="flex-1 py-1.5 px-3 rounded-lg bg-[#fbf8f0] border border-[#8B5A2B]/35 text-xs text-[#3d2714] placeholder:text-[#a0856c] focus:outline-none focus:border-[#8B5A2B] shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]"
-              />
-              <button
-                type="submit"
-                disabled={isAiLoading || !userPrompt.trim()}
-                className="py-1.5 px-3.5 rounded-lg bg-[#8B5A2B] hover:bg-[#6f4520] active:scale-[0.98] disabled:bg-stone-300 text-white text-xs font-bold tracking-wide shadow-[0_3px_8px_rgba(139,90,43,0.3)] transition cursor-pointer whitespace-nowrap border border-[#6f4520]"
-              >
-                {isAiLoading ? 'Đang chọn...' : 'Gợi ý từ Gemini'}
-              </button>
-            </form>
-          </div>
-
-          {/* 2. 4 Ô CHIA ĐỀU: 'Áo', 'Quần', 'Giày/Dép', 'Phụ Kiện' */}
-          <div className="flex-shrink-0 grid grid-cols-4 gap-2 mb-2 z-10">
+          <div className="relative z-10 flex-shrink-0">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-[#5c3a1e]">Danh mục</h2>
+              <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${catalogDiagnostics?.status === 'BLOCKED' ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'}`}>
+                {isCatalogLoading ? 'Đang tải' : catalogDiagnostics?.status ?? 'Chưa có trạng thái'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
             {CATEGORIES.map((cat) => {
-              const isSelected = selectedCategory === cat.id;
+              const isSelected = selectedSlot === cat.id;
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`py-1.5 px-2 rounded-lg text-xs font-bold tracking-wide transition-all cursor-pointer text-center ${
+                  type="button"
+                  onClick={() => setSelectedSlot(cat.id)}
+                  className={`py-2 px-2 rounded-lg text-xs font-bold transition-colors cursor-pointer text-center ${
                     isSelected
-                      ? 'bg-[#8B5A2B] text-white shadow-[0_4px_10px_rgba(139,90,43,0.35)] border border-[#6f4520]'
-                      : 'bg-[#f6eee2] hover:bg-[#ebdcc8] text-[#5c3a1e] border border-[#8B5A2B]/30 shadow-2xs hover:shadow-xs'
+                      ? 'bg-[#8B5A2B] text-white border border-[#6f4520]'
+                      : 'bg-[#f6eee2] hover:bg-[#ebdcc8] text-[#5c3a1e] border border-[#8B5A2B]/30'
                   }`}
                 >
                   {cat.label}
                 </button>
               );
             })}
+            </div>
           </div>
 
-          {/* 3. KHU VỰC TRANG PHỤC (3/4 PHẦN DƯỚI): 2 HÀNG PHÙ HỢP & KHÔNG PHÙ HỢP */}
-          <div className="flex-1 flex flex-col justify-between gap-2.5 overflow-hidden min-h-0 z-10">
-            {/* HÀNG 1: TRANG PHỤC PHÙ HỢP */}
-            <div className="flex-1 flex flex-col justify-between p-2 rounded-xl border-2 border-[#8B5A2B]/30 bg-[#fbf7ee] shadow-[inset_0_2px_6px_rgba(100,60,20,0.05),0_2px_8px_rgba(0,0,0,0.03)] overflow-hidden min-h-0">
-              <div className="flex items-center justify-between mb-1 flex-shrink-0">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#8B5A2B] drop-shadow-2xs">
-                  Trang phục phù hợp ({suitableItems.length})
-                </span>
-                <span className="text-[11px] text-[#8B5A2B]/75 italic">
-                  Click vào trang phục để mặc ngay • Di chuột để xem thông tin
-                </span>
+          <div className="relative z-10 mt-3 flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[#8B5A2B]/20 pt-3">
+            <div className="mb-3 rounded-lg border border-[#8B5A2B]/25 bg-[#fbf7ee] p-2.5">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h2 className="text-xs font-bold uppercase text-[#8B5A2B]">Bối cảnh phối đồ</h2>
+                <span className="text-[10px] text-stone-500">MVP DEMO DEFAULT</span>
               </div>
-
-              {/* 5 Hộp trang phục: chiều cao linh hoạt, không bị che khuất chữ hay thông tin */}
-              <div className="flex-1 flex items-center justify-start gap-2.5 overflow-hidden py-0.5">
-                {visibleSuitableItems.length > 0 ? (
-                  visibleSuitableItems.map((item) => (
-                    <PlayingCardItem
-                      key={item.id}
-                      item={item}
-                      isWorn={outfit[item.category]?.id === item.id}
-                      onOpenDetail={handleOpenDetail}
-                      onQuickToggle={handleToggleItem}
-                    />
-                  ))
-                ) : (
-                  <div className="w-full text-center text-xs text-stone-400 py-4 italic">
-                    Không có trang phục
-                  </div>
-                )}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <label className="min-w-0 text-[11px] font-semibold text-[#5c3a1e]">
+                  Hoàn cảnh
+                  <select
+                    value={context.occasionId}
+                    onChange={(event) => setContext((previous) => ({ ...previous, occasionId: event.target.value }))}
+                    disabled={occasions.length === 0}
+                    className="mt-1 w-full rounded-md border border-[#8B5A2B]/35 bg-white px-2 py-1.5 text-xs disabled:opacity-60"
+                  >
+                    {occasions.length === 0 && <option value={context.occasionId}>Chưa tải lựa chọn</option>}
+                    {occasions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                  </select>
+                </label>
+                <label className="min-w-0 text-[11px] font-semibold text-[#5c3a1e]">
+                  Vai trò
+                  <select
+                    value={context.roleId}
+                    onChange={(event) => setContext((previous) => ({ ...previous, roleId: event.target.value }))}
+                    disabled={roles.length === 0}
+                    className="mt-1 w-full rounded-md border border-[#8B5A2B]/35 bg-white px-2 py-1.5 text-xs disabled:opacity-60"
+                  >
+                    {roles.length === 0 && <option value={context.roleId}>Chưa tải lựa chọn</option>}
+                    {roles.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                  </select>
+                </label>
+                <label className="min-w-0 text-[11px] font-semibold text-[#5c3a1e]">
+                  Phong cách
+                  <select
+                    value={context.styleId}
+                    onChange={(event) => setContext((previous) => ({ ...previous, styleId: event.target.value }))}
+                    disabled={styles.length === 0}
+                    className="mt-1 w-full rounded-md border border-[#8B5A2B]/35 bg-white px-2 py-1.5 text-xs disabled:opacity-60"
+                  >
+                    {styles.length === 0 && <option value={context.styleId}>Chưa tải lựa chọn</option>}
+                    {styles.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                  </select>
+                </label>
               </div>
-
-              {/* Mũi tên chuyển trang phục ở phía dưới hàng 1 */}
-              <div className="flex items-center justify-end gap-1.5 pt-1 flex-shrink-0">
-                <button
-                  onClick={() => setSuitablePageIndex((p) => Math.max(0, p - 1))}
-                  disabled={suitablePageIndex === 0}
-                  className="p-1 rounded-md bg-[#d9be9b] hover:bg-[#cbb08c] disabled:opacity-30 disabled:cursor-not-allowed text-[#4a2e16] border border-[#b89a74] shadow-2xs hover:shadow-xs transition cursor-pointer"
-                  title="Trang trước"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-xs font-bold text-[#5c3a1e] px-1.5">
-                  {suitablePageIndex + 1} / {totalSuitablePages}
-                </span>
-                <button
-                  onClick={() =>
-                    setSuitablePageIndex((p) => Math.min(totalSuitablePages - 1, p + 1))
-                  }
-                  disabled={suitablePageIndex >= totalSuitablePages - 1}
-                  className="p-1 rounded-md bg-[#d9be9b] hover:bg-[#cbb08c] disabled:opacity-30 disabled:cursor-not-allowed text-[#4a2e16] border border-[#b89a74] shadow-2xs hover:shadow-xs transition cursor-pointer"
-                  title="Trang sau"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+              {contextError && <p className="mt-2 text-xs text-amber-900" role="status">{contextError}</p>}
+            </div>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-[#5c3a1e]">{selectedCategory?.label ?? 'Trang phục'}</h2>
+                <p className="text-[11px] text-stone-500">{categoryItems.length} món trong danh mục</p>
               </div>
+              {selectedCategory?.id === 'underlayer' && (
+                <span className="rounded bg-[#f6eee2] px-2 py-1 text-[10px] text-[#5c3a1e]">Slot riêng · category top</span>
+              )}
             </div>
 
-            {/* HÀNG 2: TRANG PHỤC KHÔNG PHÙ HỢP */}
-            <div className="flex-1 flex flex-col justify-between p-2 rounded-xl border-2 border-[#8B5A2B]/25 bg-[#f6eee2] shadow-[inset_0_2px_6px_rgba(100,60,20,0.04),0_2px_8px_rgba(0,0,0,0.03)] overflow-hidden min-h-0">
-              <div className="flex items-center justify-between mb-1 flex-shrink-0">
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-600">
-                  Trang phục không phù hợp ({unsuitableItems.length})
-                </span>
-                <span className="text-[11px] text-stone-500 italic">
-                  Lệch bối cảnh sự kiện
-                </span>
-              </div>
-
-              {/* 5 Hộp trang phục */}
-              <div className="flex-1 flex items-center justify-start gap-2.5 overflow-hidden py-0.5">
-                {visibleUnsuitableItems.length > 0 ? (
-                  visibleUnsuitableItems.map((item) => (
-                    <PlayingCardItem
-                      key={item.id}
-                      item={item}
-                      isWorn={outfit[item.category]?.id === item.id}
-                      onOpenDetail={handleOpenDetail}
-                      onQuickToggle={handleToggleItem}
-                    />
-                  ))
-                ) : (
-                  <div className="w-full text-center text-xs text-stone-400 py-4 italic">
-                    Tất cả các món đều phù hợp
-                  </div>
-                )}
-              </div>
-
-              {/* Mũi tên chuyển trang phục ở phía dưới hàng 2 */}
-              <div className="flex items-center justify-end gap-1.5 pt-1 flex-shrink-0">
-                <button
-                  onClick={() => setUnsuitablePageIndex((p) => Math.max(0, p - 1))}
-                  disabled={unsuitablePageIndex === 0}
-                  className="p-1 rounded-md bg-[#d9be9b] hover:bg-[#cbb08c] disabled:opacity-30 disabled:cursor-not-allowed text-[#4a2e16] border border-[#b89a74] shadow-2xs hover:shadow-xs transition cursor-pointer"
-                  title="Trang trước"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-xs font-bold text-[#5c3a1e] px-1.5">
-                  {unsuitablePageIndex + 1} / {totalUnsuitablePages}
-                </span>
-                <button
-                  onClick={() =>
-                    setUnsuitablePageIndex((p) => Math.min(totalUnsuitablePages - 1, p + 1))
-                  }
-                  disabled={unsuitablePageIndex >= totalUnsuitablePages - 1}
-                  className="p-1 rounded-md bg-[#d9be9b] hover:bg-[#cbb08c] disabled:opacity-30 disabled:cursor-not-allowed text-[#4a2e16] border border-[#b89a74] shadow-2xs hover:shadow-xs transition cursor-pointer"
-                  title="Trang sau"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {isCatalogLoading ? (
+                <p className="py-6 text-center text-sm text-stone-500">Đang tải danh mục trang phục…</p>
+              ) : catalogError ? (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950" role="status">
+                  <p className="font-semibold">{catalogError}</p>
+                  <p className="mt-1 text-xs">Catalog canonical đang BLOCKED; không dùng dữ liệu mock thay thế.</p>
+                  {catalogDiagnostics?.issues.slice(0, 4).map((issue) => (
+                    <p key={`${issue.itemId}-${issue.field}`} className="mt-1 text-xs">
+                      {issue.itemId}: {issue.field}
+                    </p>
+                  ))}
+                </div>
+              ) : categoryItems.length === 0 ? (
+                <p className="rounded-lg border border-[#8B5A2B]/20 bg-[#fbf7ee] p-4 text-center text-sm text-stone-500">
+                  Chưa có item trong danh mục này.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {categoryItems.map((item) => (
+                    <div key={item.id} className="h-48 min-w-0">
+                      <PlayingCardItem
+                        item={item}
+                        isWorn={outfit[selectedSlot] === item.id}
+                        onOpenDetail={handleOpenDetail}
+                        onQuickToggle={handleToggleItem}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -483,7 +379,7 @@ export const StylistPage: React.FC = () => {
       <ItemDetailModal
         item={detailItem}
         isOpen={isModalOpen}
-        isWorn={Boolean(detailItem && outfit[detailItem.category]?.id === detailItem.id)}
+        isWorn={Boolean(detailItem && outfit[selectedSlot] === detailItem.id)}
         onClose={() => setIsModalOpen(false)}
         onSelect={handleToggleItem}
       />

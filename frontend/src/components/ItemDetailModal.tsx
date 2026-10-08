@@ -1,13 +1,21 @@
 import React from 'react';
-import { FashionItem } from '../types';
+import { Item, ItemCategory } from '../types';
 import { X, Check } from 'lucide-react';
 
+const CATEGORY_LABELS: Record<ItemCategory, string> = {
+  top: 'Áo',
+  bottom: 'Quần',
+  shoes: 'Giày',
+  bag: 'Túi',
+  accessory: 'Phụ kiện'
+};
+
 interface ItemDetailModalProps {
-  item: FashionItem | null;
+  item: Item | null;
   isOpen: boolean;
   isWorn: boolean;
   onClose: () => void;
-  onSelect: (item: FashionItem) => void;
+  onSelect: (item: Item) => void;
 }
 
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
@@ -45,43 +53,51 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         {/* Modal Header */}
         <div className="pr-8 mb-2 z-10">
           <span className="text-xs uppercase tracking-widest font-semibold text-[#8B5A2B]">
-            {item.categoryLabel} • {item.subCategory}
+            {CATEGORY_LABELS[item.category]}
           </span>
           <h3 className="text-xl font-bold text-stone-900 leading-snug">
             {item.name}
           </h3>
+          {item.metadata.reviewStatus === 'HUMAN_REVIEW_REQUIRED' && (
+            <p className="mt-1 text-xs font-semibold text-amber-800">Thông tin đang chờ nhóm xác nhận.</p>
+          )}
         </div>
 
         {/* Image Box */}
         <div className="relative w-full h-44 bg-[#fcf9f2] rounded-xl border border-[#8B5A2B]/20 overflow-hidden flex items-center justify-center p-2 mb-3 z-10 shadow-[inset_0_2px_6px_rgba(0,0,0,0.04)]">
-          <img
-            src={item.image}
-            alt={item.name}
-            className="max-h-full max-w-full object-contain drop-shadow-[0_6px_12px_rgba(0,0,0,0.18)]"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                item.category === 'ao' ? '/ao_mock_001.png' : '/quan_mock_001.png';
-            }}
-          />
+          {item.assets.thumbnail.status === 'READY' ? (
+            <img
+              src={item.assets.thumbnail.path}
+              alt={item.name}
+              className="max-h-full max-w-full object-contain drop-shadow-[0_6px_12px_rgba(0,0,0,0.18)]"
+            />
+          ) : (
+            <span className="text-xs text-stone-500">Ảnh đang chờ</span>
+          )}
         </div>
 
         {/* Product Details Grid */}
         <div className="grid grid-cols-2 gap-2 text-xs mb-3 z-10">
           <div className="p-2 rounded-lg bg-[#f6eee2] border border-[#8B5A2B]/20">
             <span className="text-[10px] text-stone-500 block uppercase font-bold tracking-wider">Màu sắc</span>
-            <span className="font-semibold text-stone-800">{item.color}</span>
+            <span className="font-semibold text-stone-800">{item.metadata.colors.join(', ')}</span>
           </div>
           <div className="p-2 rounded-lg bg-[#f6eee2] border border-[#8B5A2B]/20">
             <span className="text-[10px] text-stone-500 block uppercase font-bold tracking-wider">Chất liệu</span>
-            <span className="font-semibold text-stone-800">{item.material}</span>
+            <span className="font-semibold text-stone-800">{item.metadata.materials.join(', ')}</span>
           </div>
         </div>
 
         {/* Description / Style */}
         <div className="p-2.5 rounded-lg bg-[#fbf6ed] border border-[#8B5A2B]/25 text-xs mb-4 z-10">
-          <span className="text-[11px] text-[#8B5A2B] block font-bold">Phong cách: {item.style}</span>
+          <span className="text-[11px] text-[#8B5A2B] block font-bold">
+            Phong cách: {item.metadata.styleIds.join(', ')}
+          </span>
           <p className="text-stone-700 italic mt-0.5 leading-relaxed">
             "{item.description}"
+          </p>
+          <p className="text-stone-600 mt-2 leading-relaxed">
+            {item.culture.meaning ?? item.culture.characteristics.join(', ')}
           </p>
         </div>
 
@@ -100,12 +116,12 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           {isWorn ? (
             <>
               <X className="w-4 h-4" />
-              <span>Tháo trang phục này</span>
+              <span>Bỏ chọn món này</span>
             </>
           ) : (
             <>
               <Check className="w-4 h-4" />
-              <span>Chọn</span>
+              <span>Chọn món</span>
             </>
           )}
         </button>

@@ -1,11 +1,12 @@
 {
+  "recordStatus": "LEGACY",
   "id": "ao_mock_001",
   "category": "top",
   "name": "Áo Tấc Test",
   "metadata": {
     "colors": ["blue"],
-    "styles": ["style_elegant"],
-    "occasions": ["occ_graduation"]
+    "styleIds": ["style_elegant"],
+    "occasionIds": ["occ_graduation"]
   },
   "culture": {
     "origin": "Thời Nguyễn",

@@ -1,0 +1,23 @@
+{
+  "id": "bottom_001",
+  "category": "bottom",
+  "name": "Quần Lụa Trắng (candidate)",
+  "description": "Mẫu demo cho slot quần; định danh và chi tiết hình thức chờ nhóm nội dung xác nhận.",
+  "assets": {
+    "thumbnail": { "status": "PENDING_ASSET", "assetId": "bottom_001_thumb" },
+    "renderLayer": { "status": "PENDING_ASSET", "assetId": "bottom_001_layer" }
+  },
+  "metadata": {
+    "colors": ["white"],
+    "materials": [],
+    "styleIds": ["style_elegant", "style_modern_remix"],
+    "occasionIds": ["occ_graduation", "occ_spring_walk"],
+    "reviewStatus": "HUMAN_REVIEW_REQUIRED"
+  },
+  "culture": { "characteristics": [] },
+  "render": {
+    "layer": "bottom",
+    "position": { "x": 0.25, "y": 0.4, "width": 0.5, "height": 0.52 },
+    "zIndex": 310
+  }
+}

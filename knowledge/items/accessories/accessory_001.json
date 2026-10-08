@@ -1,0 +1,23 @@
+{
+  "id": "accessory_001",
+  "category": "accessory",
+  "name": "Kính gọng mảnh trung tính (visual brief)",
+  "description": "Mẫu demo cho slot phụ kiện; kiểu dáng và tính ứng dụng cần nhóm nội dung xác nhận.",
+  "assets": {
+    "thumbnail": { "status": "PENDING_ASSET", "assetId": "accessory_001_thumb" },
+    "renderLayer": { "status": "PENDING_ASSET", "assetId": "accessory_001_layer" }
+  },
+  "metadata": {
+    "colors": [],
+    "materials": [],
+    "styleIds": ["style_modern_remix"],
+    "occasionIds": ["occ_spring_walk"],
+    "reviewStatus": "HUMAN_REVIEW_REQUIRED"
+  },
+  "culture": { "characteristics": [] },
+  "render": {
+    "layer": "face-overlay",
+    "position": { "x": 0.32, "y": 0.1, "width": 0.36, "height": 0.12 },
+    "zIndex": 710
+  }
+}

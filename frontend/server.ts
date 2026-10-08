@@ -3,6 +3,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { EVENTS_DATA, INITIAL_ITEMS } from './src/data/mockItems.ts';
+import { KnowledgeCatalogRepository } from './src/services/knowledgeCatalog.ts';
+import { ItemCategory } from './src/types';
 
 dotenv.config();
 
@@ -10,6 +12,8 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
+
+const knowledgeCatalog = new KnowledgeCatalogRepository();
 
 // Initialize GoogleGenAI SDK safely
 const apiKey = process.env.GEMINI_API_KEY || '';
@@ -63,6 +67,65 @@ app.get('/api/items', (req, res) => {
       total: filtered.length
     }
   });
+});
+
+// Canonical knowledge-backed catalog API. Legacy /api/items remains isolated above.
+app.get('/api/catalog/items', (req, res) => {
+  const category = req.query.category as string | undefined;
+  if (category && !['top', 'bottom', 'shoes', 'bag', 'accessory'].includes(category)) {
+    return res.status(400).json({ success: false, error: 'INVALID_CATEGORY' });
+  }
+
+  const contextValues = ['occasionId', 'roleId', 'styleId'].map((key) => req.query[key]);
+  const hasContext = contextValues.some((value) => value !== undefined);
+  if (hasContext && !contextValues.every((value) => typeof value === 'string' && value.length > 0)) {
+    return res.status(400).json({ success: false, error: 'INCOMPLETE_CONTEXT' });
+  }
+
+  const diagnostics = knowledgeCatalog.getDiagnostics();
+  if (diagnostics.status === 'BLOCKED') {
+    return res.status(503).json({ success: false, error: 'CATALOG_BLOCKED', diagnostics });
+  }
+
+  const contextItems = hasContext
+    ? knowledgeCatalog.getItemsByContext({
+        occasionId: contextValues[0] as string,
+        roleId: contextValues[1] as string,
+        styleId: contextValues[2] as string,
+      })
+    : knowledgeCatalog.getAllItems();
+  const data = category
+    ? contextItems.filter((item) => item.category === (category as ItemCategory))
+    : contextItems;
+
+  return res.json({ success: true, data, diagnostics });
+});
+
+app.get('/api/catalog/items/:id', (req, res) => {
+  const diagnostics = knowledgeCatalog.getDiagnostics();
+  if (diagnostics.status === 'BLOCKED') {
+    return res.status(503).json({ success: false, error: 'CATALOG_BLOCKED', diagnostics });
+  }
+
+  const item = knowledgeCatalog.getItemById(req.params.id);
+  if (!item) return res.status(404).json({ success: false, error: 'ITEM_NOT_FOUND' });
+  return res.json({ success: true, data: item });
+});
+
+app.get('/api/catalog/occasions', (_req, res) => {
+  res.json({ success: true, data: knowledgeCatalog.getAllOccasions() });
+});
+
+app.get('/api/catalog/roles', (_req, res) => {
+  res.json({ success: true, data: knowledgeCatalog.getAllRoles() });
+});
+
+app.get('/api/catalog/styles', (_req, res) => {
+  res.json({ success: true, data: knowledgeCatalog.getAllStyles() });
+});
+
+app.get('/api/catalog/cultural-rules', (_req, res) => {
+  res.json({ success: true, data: knowledgeCatalog.getAllCulturalRules() });
 });
 
 // 3. API: Gemini AI Stylist Recommendation

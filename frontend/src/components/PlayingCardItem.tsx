@@ -1,12 +1,20 @@
 import React from 'react';
-import { FashionItem } from '../types';
+import { Item, ItemCategory } from '../types';
 import { Info, Check } from 'lucide-react';
 
+const CATEGORY_LABELS: Record<ItemCategory, string> = {
+  top: 'Áo',
+  bottom: 'Quần',
+  shoes: 'Giày',
+  bag: 'Túi',
+  accessory: 'Phụ kiện'
+};
+
 interface PlayingCardItemProps {
-  item: FashionItem;
+  item: Item;
   isWorn: boolean;
-  onOpenDetail: (item: FashionItem) => void;
-  onQuickToggle: (item: FashionItem) => void;
+  onOpenDetail: (item: Item) => void;
+  onQuickToggle: (item: Item) => void;
 }
 
 export const PlayingCardItem: React.FC<PlayingCardItemProps> = ({
@@ -31,32 +39,39 @@ export const PlayingCardItem: React.FC<PlayingCardItemProps> = ({
       {/* Top minimal subcategory & status tag */}
       <div className="relative z-10 flex items-center justify-between text-[11px] leading-tight px-1 pt-0.5 flex-shrink-0">
         <span className="text-[#8B5A2B] font-bold text-[11px] truncate italic">
-          {item.subCategory}
+          {CATEGORY_LABELS[item.category]}
         </span>
-        {isWorn ? (
-          <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-[#8B5A2B] text-[#FFFDF5] shadow-xs flex items-center gap-0.5">
-            <Check className="w-2.5 h-2.5" />
-            <span>Đang mặc</span>
-          </span>
-        ) : item.isSuitableForCurrentEvent ? (
-          <span className="text-[9.5px] font-bold text-emerald-800 bg-emerald-100/90 px-1 py-0.5 rounded border border-emerald-300 shadow-2xs">
-            Chuẩn
-          </span>
-        ) : null}
+        <span className="flex shrink-0 flex-col items-end gap-0.5">
+          {isWorn && (
+            <span className="flex items-center gap-0.5 rounded bg-[#8B5A2B] px-1.5 py-0.5 text-[9px] font-bold text-[#FFFDF5] shadow-xs">
+              <Check className="h-2.5 w-2.5" />
+              Đã chọn
+            </span>
+          )}
+          {item.metadata.reviewStatus === 'HUMAN_REVIEW_REQUIRED' && (
+            <span className="rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold text-amber-900">
+              Chờ duyệt
+            </span>
+          )}
+        </span>
       </div>
 
       {/* Item Image area: takes entire card body for clean, prominent garment display */}
       <div className="relative z-10 flex-1 my-1 rounded-lg border border-white/70 overflow-hidden flex items-center justify-center p-1.5 bg-[#faf6ed]/50">
-        <img
-          src={item.image}
-          alt={item.name}
-          className="max-h-[95px] sm:max-h-[110px] w-auto max-w-full object-contain drop-shadow-[0_6px_10px_rgba(0,0,0,0.18)] transition-transform duration-300 group-hover:scale-105"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              item.category === 'ao' ? '/ao_mock_001.png' : '/quan_mock_001.png';
-          }}
-        />
+        {item.assets.thumbnail.status === 'READY' ? (
+          <img
+            src={item.assets.thumbnail.path}
+            alt={item.name}
+            className="max-h-[95px] sm:max-h-[110px] w-auto max-w-full object-contain drop-shadow-[0_6px_10px_rgba(0,0,0,0.18)] transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <span className="text-[10px] text-stone-500">Ảnh đang chờ</span>
+        )}
       </div>
+
+      <p className="relative z-10 min-h-8 px-1 text-[11px] font-semibold leading-tight text-[#3d2714] line-clamp-2">
+        {item.name}
+      </p>
 
       {/* 'Xem thông tin' Button: ONLY appears on hover at the bottom of the card */}
       <div className="absolute inset-x-2 bottom-2 z-20 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-auto">

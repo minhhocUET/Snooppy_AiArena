@@ -1,11 +1,12 @@
 {
+  "recordStatus": "LEGACY",
   "id": "quan_mock_001",
   "category": "bottom",
   "name": "Quần Lụa Trắng Test",
   "metadata": {
     "colors": ["white"],
-    "styles": ["style_elegant"],
-    "occasions": ["occ_graduation", "occ_spring_walk"]
+    "styleIds": ["style_elegant"],
+    "occasionIds": ["occ_graduation", "occ_spring_walk"]
   },
   "culture": {
     "origin": "Truyền thống",
