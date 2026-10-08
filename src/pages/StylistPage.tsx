@@ -6,18 +6,27 @@ import {
   BackgroundPreset,
   CatalogDiagnostics,
   Context,
+  CulturalRule,
   Item,
   ItemCategory,
   KnowledgeOption,
   Outfit,
   OutfitSlot,
+  RecommendationResponse,
+  RenderLayer,
 } from '../types';
 import { PlayingCardItem } from '../components/PlayingCardItem';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { AvatarRenderer, isRenderLayerAllowedForSlot } from '../components/avatar/AvatarRenderer';
 import { AVATAR_PRESETS, BACKGROUND_PRESETS } from '../data/renderPresets';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
-import { CatalogApiError, getCatalogItems, getCatalogOptions } from '../services/catalogApi';
+import { ArrowLeft, Check, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
+import {
+  CatalogApiError,
+  getCatalogItems,
+  getCatalogOptions,
+  getCatalogRecommendation,
+  getCulturalRules,
+} from '../services/catalogApi';
 
 const CATEGORIES: { id: OutfitSlot; label: string; catalogCategory: ItemCategory }[] = [
   { id: 'top', label: 'Áo', catalogCategory: 'top' },
@@ -65,6 +74,14 @@ export const StylistPage: React.FC = () => {
   const [detailItem, setDetailItem] = useState<Item | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
+  // State: AI Recommendation (Phase 4.3)
+  const [userPrompt, setUserPrompt] = useState<string>('');
+  const [recommendation, setRecommendation] = useState<RecommendationResponse | null>(null);
+  const [isRecommending, setIsRecommending] = useState<boolean>(false);
+  const [recommendationError, setRecommendationError] = useState<string | null>(null);
+  const [culturalRules, setCulturalRules] = useState<CulturalRule[]>([]);
+  const [isRecommendationApplied, setIsRecommendationApplied] = useState<boolean>(false);
+
   useEffect(() => {
     let active = true;
     setIsCatalogLoading(true);
@@ -98,12 +115,14 @@ export const StylistPage: React.FC = () => {
       getCatalogOptions('occasions'),
       getCatalogOptions('roles'),
       getCatalogOptions('styles'),
+      getCulturalRules(),
     ])
-      .then(([occasionResponse, roleResponse, styleResponse]) => {
+      .then(([occasionResponse, roleResponse, styleResponse, rulesResponse]) => {
         if (!active) return;
         setOccasions(occasionResponse.data);
         setRoles(roleResponse.data);
         setStyles(styleResponse.data);
+        setCulturalRules(rulesResponse.data);
         setContextError(null);
       })
       .catch(() => {
@@ -111,6 +130,7 @@ export const StylistPage: React.FC = () => {
         setOccasions([]);
         setRoles([]);
         setStyles([]);
+        setCulturalRules([]);
         setContextError('Không thể tải các lựa chọn hoàn cảnh, vai trò và phong cách.');
       });
 
@@ -118,6 +138,13 @@ export const StylistPage: React.FC = () => {
       active = false;
     };
   }, []);
+
+  // Requirement 13: Clear recommendation when Context changes. Do NOT auto-call Gemini or auto-apply.
+  useEffect(() => {
+    setRecommendation(null);
+    setRecommendationError(null);
+    setIsRecommendationApplied(false);
+  }, [context.occasionId, context.roleId, context.styleId]);
 
   const avatarPreset = AVATAR_PRESETS.find((preset) => preset.avatarPresetId === avatarPresetId) ?? AVATAR_PRESETS[0];
   const background = BACKGROUND_PRESETS.find((preset) => preset.backgroundPresetId === backgroundPresetId) ?? BACKGROUND_PRESETS[0];
@@ -133,6 +160,7 @@ export const StylistPage: React.FC = () => {
     isRenderLayerAllowedForSlot(selectedSlot, item.render.layer),
   );
   const itemsById = new Map(items.map((item) => [item.id, item]));
+  const rulesById = new Map(culturalRules.map((rule) => [rule.ruleId, rule]));
 
   const handleToggleItem = (item: Item) => {
     if (item.category !== selectedCategory?.catalogCategory ||
@@ -152,6 +180,72 @@ export const StylistPage: React.FC = () => {
   const handleOpenDetail = (item: Item) => {
     setDetailItem(item);
     setIsModalOpen(true);
+  };
+
+  const handleRequestRecommendation = async () => {
+    if (isRecommending) return;
+    setIsRecommending(true);
+    setRecommendationError(null);
+    setIsRecommendationApplied(false);
+
+    try {
+      const response = await getCatalogRecommendation({
+        context,
+        userPrompt: userPrompt.trim() ? userPrompt.trim() : undefined,
+        currentOutfit: outfit,
+      });
+      setRecommendation(response.data);
+    } catch (err: any) {
+      if (err.code === 'NO_SUITABLE_CANDIDATES') {
+        setRecommendationError('Chưa tìm thấy trang phục phù hợp với bối cảnh hiện tại trong danh mục.');
+      } else if (err.code === 'GEMINI_UNAVAILABLE') {
+        setRecommendationError('AI hiện chưa khả dụng. Bạn có thể tiếp tục tự phối trang phục.');
+      } else {
+        setRecommendationError(err.message || 'Không thể tạo gợi ý từ AI lúc này. Vui lòng thử lại sau.');
+      }
+      setRecommendation(null);
+    } finally {
+      setIsRecommending(false);
+    }
+  };
+
+  const handleApplyRecommendation = () => {
+    if (!recommendation) return;
+
+    const slotValidationRules: Record<OutfitSlot, { category: ItemCategory; allowedLayers: RenderLayer[] }> = {
+      top: { category: 'top', allowedLayers: ['top'] },
+      underlayer: { category: 'top', allowedLayers: ['underlayer'] },
+      bottom: { category: 'bottom', allowedLayers: ['bottom'] },
+      shoes: { category: 'shoes', allowedLayers: ['shoes'] },
+      bag: { category: 'bag', allowedLayers: ['bag-front', 'bag-back'] },
+      accessory: { category: 'accessory', allowedLayers: ['accessory', 'face-overlay'] },
+    };
+
+    const slots: OutfitSlot[] = ['top', 'underlayer', 'bottom', 'shoes', 'bag', 'accessory'];
+    const nextOutfit: Outfit = { ...outfit };
+
+    for (const slot of slots) {
+      const recId = recommendation[slot];
+      if (recId === null || recId === undefined) {
+        // Requirement 11: Null slot preserves current slot
+        continue;
+      }
+      const item = itemsById.get(recId);
+      if (!item) {
+        setRecommendationError(`Món đồ gợi ý '${recId}' không tìm thấy trong danh mục.`);
+        return;
+      }
+      const rule = slotValidationRules[slot];
+      if (item.category !== rule.category || !rule.allowedLayers.includes(item.render.layer)) {
+        setRecommendationError(`Món đồ '${item.name}' không tương thích với slot '${slot}'.`);
+        return;
+      }
+      nextOutfit[slot] = item.id;
+    }
+
+    // Apply verified recommendation to outfit state
+    setOutfit(nextOutfit);
+    setIsRecommendationApplied(true);
   };
 
   return (
@@ -328,6 +422,132 @@ export const StylistPage: React.FC = () => {
                 </label>
               </div>
               {contextError && <p className="mt-2 text-xs text-amber-900" role="status">{contextError}</p>}
+            </div>
+
+            {/* AI Recommendation Section (Phase 4.3) */}
+            <div className="mb-3 rounded-lg border border-[#8B5A2B]/25 bg-[#fbf7ee] p-2.5">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-[#8B5A2B]">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                  <span>AI Stylist Gợi Ý</span>
+                </div>
+                {recommendation && (
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
+                    {recommendation.styleVibe}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  value={userPrompt}
+                  onChange={(e) => setUserPrompt(e.target.value)}
+                  placeholder="Mong muốn thêm (ví dụ: thanh lịch, tối giản, nổi bật...)"
+                  disabled={isRecommending}
+                  className="min-w-0 flex-1 rounded-md border border-[#8B5A2B]/35 bg-white px-2.5 py-1.5 text-xs text-[#3d2714] placeholder:text-stone-400 focus:border-[#8B5A2B] focus:outline-none disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  onClick={handleRequestRecommendation}
+                  disabled={isRecommending}
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md bg-[#8B5A2B] px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-[#6f4520] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                >
+                  {isRecommending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Đang phân tích…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>Gợi ý với AI</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {recommendationError && (
+                <div className="mt-2.5 flex items-start justify-between gap-2 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+                  <p>{recommendationError}</p>
+                  <button
+                    type="button"
+                    onClick={() => setRecommendationError(null)}
+                    className="shrink-0 text-amber-700 hover:text-amber-950 cursor-pointer"
+                    aria-label="Đóng thông báo lỗi"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {recommendation && (
+                <div className="mt-2.5 rounded-md border border-[#8B5A2B]/30 bg-[#FFFDF5] p-2.5 text-xs text-[#3d2714]">
+                  <p className="italic text-stone-700">"{recommendation.stylistMessage}"</p>
+
+                  <div className="mt-2 border-t border-[#8B5A2B]/15 pt-2">
+                    <p className="font-bold text-[#8B5A2B]">Bộ phối đề xuất:</p>
+                    <div className="mt-1.5 grid grid-cols-2 gap-1 sm:grid-cols-3">
+                      {CATEGORIES.map(({ id, label }) => {
+                        const recId = recommendation[id];
+                        const recItem = recId ? itemsById.get(recId) : null;
+                        return (
+                          <div key={id} className="rounded bg-[#f8f3e8] px-2 py-1">
+                            <span className="font-semibold text-[#5c3a1e]">{label}: </span>
+                            <span className="text-stone-700">
+                              {recItem?.name ?? (recId ? recId : 'Không đề xuất')}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {recommendation.appliedRuleIds.length > 0 && (
+                    <div className="mt-2 border-t border-[#8B5A2B]/15 pt-1.5">
+                      <p className="text-[11px] font-bold text-[#8B5A2B]">Quy tắc văn hóa được áp dụng:</p>
+                      <ul className="mt-1 space-y-0.5 text-[11px] text-stone-600">
+                        {recommendation.appliedRuleIds.map((ruleId) => {
+                          const rule = rulesById.get(ruleId);
+                          return (
+                            <li key={ruleId} className="list-inside list-disc">
+                              <span className="font-semibold">{rule?.category ? `[${rule.category}] ` : ''}</span>
+                              {rule?.statement ?? ruleId}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex items-center justify-between border-t border-[#8B5A2B]/20 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setRecommendation(null)}
+                      className="rounded px-2 py-1 text-[11px] text-stone-500 hover:bg-[#f6eee2] hover:text-stone-700 cursor-pointer"
+                    >
+                      Đóng
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleApplyRecommendation}
+                      className="inline-flex items-center gap-1 rounded-md bg-[#8B5A2B] px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-[#6f4520] cursor-pointer"
+                    >
+                      {isRecommendationApplied ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-300" />
+                          <span>Đã áp dụng</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Áp dụng vào người mẫu</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="min-w-0">

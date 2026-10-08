@@ -184,6 +184,58 @@ export interface CatalogDiagnostics {
 
 export type ModelGender = 'nam' | 'nu';
 
+// ================= CANONICAL PHASE 4.1 RECOMMENDATION CONTRACT =================
+export interface RecommendationRequest {
+  context: Context;
+  userPrompt?: string;
+  currentOutfit?: Outfit;
+}
+
+export interface RecommendationResponse {
+  top: string | null;
+  underlayer: string | null;
+  bottom: string | null;
+  shoes: string | null;
+  bag: string | null;
+  accessory: string | null;
+  styleVibe: string;
+  stylistMessage: string;
+  appliedRuleIds: string[];
+}
+
+// ================= CANONICAL PHASE 5.1/5.2 VALIDATION CONTRACT =================
+export type ValidationStatus = 'PASS' | 'WARN' | 'NEEDS_ADJUSTMENT';
+
+export type FindingSeverity = 'ERROR' | 'WARNING' | 'INFO';
+
+export interface ValidationSuggestion {
+  slot: OutfitSlot;
+  suggestedItemId: string | null;
+  reason: string;
+}
+
+export interface ValidationFinding {
+  slot?: OutfitSlot | null;
+  severity: FindingSeverity;
+  ruleId: string | null;
+  message: string;
+  detail?: string;
+  suggestion?: ValidationSuggestion | null;
+}
+
+export interface ValidationResponse {
+  status: ValidationStatus;
+  summary: string;
+  findings: ValidationFinding[];
+  appliedRuleIds: string[];
+}
+
+export interface ValidationRequest {
+  context: Context;
+  outfit: Outfit;
+}
+
+// ================= LEGACY TYPES (PRESERVED FOR PROTOTYPE BACKWARD COMPATIBILITY) =================
 export interface FashionItem {
   id: string;
   name: string;

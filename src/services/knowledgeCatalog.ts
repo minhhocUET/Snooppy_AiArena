@@ -20,8 +20,8 @@ const RENDER_LAYERS: RenderLayer[] = [
   'hair-back', 'hair-front', 'face-overlay',
 ];
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_KNOWLEDGE_DIR = resolve(MODULE_DIR, '../../../knowledge');
-const DEFAULT_REPO_ROOT = resolve(DEFAULT_KNOWLEDGE_DIR, '..');
+const DEFAULT_REPO_ROOT = resolve(MODULE_DIR, '../..');
+const DEFAULT_KNOWLEDGE_DIR = resolve(DEFAULT_REPO_ROOT, 'knowledge');
 
 type JsonObject = Record<string, unknown>;
 
