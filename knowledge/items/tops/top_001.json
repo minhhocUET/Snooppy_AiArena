@@ -2,22 +2,49 @@
   "id": "top_001",
   "category": "top",
   "name": "Áo Tấc (candidate)",
-  "description": "Mẫu demo cho slot áo; chi tiết hình thức chờ nhóm nội dung xác nhận.",
+  "description": "Mẫu minh họa Áo Tấc màu đỏ trầm, tay thụng rộng. Chi tiết cấu tạo và hoa văn cần được nhóm nội dung xác nhận.",
   "assets": {
-    "thumbnail": { "status": "PENDING_ASSET", "assetId": "top_001_thumb" },
-    "renderLayer": { "status": "PENDING_ASSET", "assetId": "top_001_layer" }
+    "thumbnail": {
+      "status": "READY",
+      "assetId": "top_001_thumb",
+      "path": "/assets/thumbnails/top_001_thumb.png",
+      "mimeType": "image/png"
+    },
+    "renderLayer": {
+      "status": "READY",
+      "assetId": "top_001_layer",
+      "path": "/assets/items/tops/top_001_layer.png",
+      "mimeType": "image/png"
+    }
   },
   "metadata": {
-    "colors": [],
+    "colors": [
+      "red"
+    ],
     "materials": [],
-    "styleIds": ["style_elegant"],
-    "occasionIds": ["occ_graduation"],
+    "styleIds": [
+      "style_elegant"
+    ],
+    "occasionIds": [
+      "occ_graduation"
+    ],
     "reviewStatus": "HUMAN_REVIEW_REQUIRED"
   },
-  "culture": { "characteristics": [] },
+  "culture": {
+    "characteristics": [
+      "Tay thụng rộng",
+      "Cổ đứng",
+      "Thân áo dài"
+    ]
+  },
   "render": {
     "layer": "top",
-    "position": { "x": 0.18, "y": 0.18, "width": 0.64, "height": 0.36 },
+    "position": {
+      "x": 0.09,
+      "y": 0.27,
+      "width": 0.82,
+      "height": 0.57
+    },
     "zIndex": 460
   }
 }

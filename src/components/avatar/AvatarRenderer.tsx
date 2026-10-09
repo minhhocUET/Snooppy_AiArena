@@ -86,30 +86,42 @@ export const AvatarRenderer: React.FC<AvatarRendererProps> = ({
       {/* Mannequin / Character Silhouette Stage */}
       <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
         {/* Model Silhouette Body SVG */}
-        <svg
-          className="w-[78%] h-[88%] text-[#cbb292]/40 drop-shadow-md"
-          viewBox="0 0 200 320"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Head & Neck */}
-          <ellipse cx="100" cy="55" rx="22" ry="26" fill="currentColor" opacity="0.8" />
-          <path d="M92 78 H108 V96 H92 Z" fill="currentColor" opacity="0.75" />
-          {/* Shoulders & Torso */}
-          <path
-            d="M58 100 C72 95 128 95 142 100 C150 104 154 135 148 160 C144 175 136 195 138 215 C132 218 68 218 62 215 C64 195 56 175 52 160 C46 135 50 104 58 100 Z"
-            fill="currentColor"
-            opacity="0.8"
+        
+        {/* Avatar Base Image */}
+        {avatarPreset.assets.base.status === 'READY' ? (
+          <img
+            key={avatarPreset.avatarPresetId}
+            src={avatarPreset.assets.base.path}
+            alt={avatarPreset.name}
+            className="absolute inset-0 w-full h-full object-contain select-none drop-shadow-md"
+            draggable={false}
+            onError={(event) => {
+            event.currentTarget.style.display = 'none';
+            }}
           />
-          {/* Arms */}
-          <path d="M54 105 C46 130 38 175 42 205 C44 212 49 212 51 205 C50 175 56 135 62 110 Z" fill="currentColor" opacity="0.65" />
-          <path d="M146 105 C154 130 162 175 158 205 C156 212 151 212 149 205 C150 175 144 135 138 110 Z" fill="currentColor" opacity="0.65" />
-          {/* Legs & Base */}
-          <path d="M72 215 C72 245 74 285 76 308 C78 312 85 312 87 308 C89 285 93 245 93 215 Z" fill="currentColor" opacity="0.75" />
-          <path d="M107 215 C107 245 111 285 113 308 C115 312 122 312 124 308 C126 285 128 245 128 215 Z" fill="currentColor" opacity="0.75" />
-          {/* Model Pedestal / Shadow */}
-          <ellipse cx="100" cy="312" rx="42" ry="6" fill="#8B5A2B" opacity="0.25" />
-        </svg>
+        ) : (
+          /* Fallback mannequin when avatar asset is pending */
+          <svg
+            className="w-[78%] h-[88%] text-[#cbb292]/40 drop-shadow-md"
+            viewBox="0 0 200 320"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <ellipse cx="100" cy="55" rx="22" ry="26" fill="currentColor" opacity="0.8" />
+            <path d="M92 78 H108 V96 H92 Z" fill="currentColor" opacity="0.75" />
+            <path
+              d="M58 100 C72 95 128 95 142 100 C150 104 154 135 148 160 C144 175 136 195 138 215 C132 218 68 218 62 215 C64 195 56 175 52 160 C46 135 50 104 58 100 Z"
+              fill="currentColor"
+              opacity="0.8"
+            />
+            <path d="M54 105 C46 130 38 175 42 205 C44 212 49 212 51 205 C50 175 56 135 62 110 Z" fill="currentColor" opacity="0.65" />
+            <path d="M146 105 C154 130 162 175 158 205 C156 212 151 212 149 205 C150 175 144 135 138 110 Z" fill="currentColor" opacity="0.65" />
+            <path d="M72 215 C72 245 74 285 76 308 C78 312 85 312 87 308 C89 285 93 245 93 215 Z" fill="currentColor" opacity="0.75" />
+            <path d="M107 215 C107 245 111 285 113 308 C115 312 122 312 124 308 C126 285 128 245 128 215 Z" fill="currentColor" opacity="0.75" />
+            <ellipse cx="100" cy="312" rx="42" ry="6" fill="#8B5A2B" opacity="0.25" />
+          </svg>
+        )}
+
 
         {/* Worn Items Rendering Layers */}
         {wornEntries.map(({ slot, item }) => {

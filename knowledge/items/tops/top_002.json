@@ -1,26 +1,49 @@
+
 {
   "id": "top_002",
   "category": "top",
   "name": "Áo Ngũ Thân (candidate)",
-  "description": "Mẫu demo thay thế cho slot áo; chi tiết hình thức chờ nhóm nội dung xác nhận.",
+  "description": "Áo ngũ thân tay chẽn màu xanh than, cổ đứng, khuy cài lệch và thân áo dài. Hình thức cần được nhóm nội dung xác nhận.",
   "assets": {
-    "thumbnail": { "status": "PENDING_ASSET", "assetId": "top_002_thumb" },
-    "renderLayer": { "status": "PENDING_ASSET", "assetId": "top_002_layer" }
+    "thumbnail": {
+      "status": "READY",
+      "assetId": "top_002_thumb",
+      "path": "/assets/thumbnails/top_002_thumb.png",
+      "mimeType": "image/png"
+    },
+    "renderLayer": {
+      "status": "READY",
+      "assetId": "top_002_layer",
+      "path": "/assets/items/tops/top_002_layer.png",
+      "mimeType": "image/png"
+    }
   },
   "metadata": {
-    "colors": [],
+    "colors": ["navy"],
     "materials": [],
     "styleIds": ["style_modern_remix"],
     "occasionIds": ["occ_spring_walk"],
     "reviewStatus": "HUMAN_REVIEW_REQUIRED"
   },
   "culture": {
-    "characteristics": [],
-    "sourceRefs": [{ "sourceId": "rule_layering_aotac" }]
+    "characteristics": [
+      "Cổ đứng",
+      "Tay chẽn",
+      "Thân áo dài",
+      "Khuy cài lệch"
+    ],
+    "sourceRefs": [
+      { "sourceId": "rule_layering_aotac" }
+    ]
   },
   "render": {
     "layer": "top",
-    "position": { "x": 0.18, "y": 0.18, "width": 0.64, "height": 0.36 },
+    "position": {
+      "x": 0.17,
+      "y": 0.29,
+      "width": 0.66,
+      "height": 0.54
+    },
     "zIndex": 461
   }
 }

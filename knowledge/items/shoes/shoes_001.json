@@ -2,19 +2,36 @@
   "id": "shoes_001",
   "category": "shoes",
   "name": "Giày bệt trơn tông trung tính (visual brief)",
-  "description": "Mẫu demo cho slot giày; kiểu dáng và tính ứng dụng cần nhóm nội dung xác nhận.",
+  "description": "Mẫu demo cho slot giày; kiểu dáng slip-on bệt trơn màu ngà trung tính, phù hợp phối với Việt phục, cần nhóm nội dung xác nhận.",
   "assets": {
-    "thumbnail": { "status": "PENDING_ASSET", "assetId": "shoes_001_thumb" },
-    "renderLayer": { "status": "PENDING_ASSET", "assetId": "shoes_001_layer" }
+    "thumbnail": {
+      "status": "READY",
+      "assetId": "shoes_001_thumb",
+      "path": "/assets/thumbnails/shoes_001_thumb.png",
+      "mimeType": "image/png"
+    },
+    "renderLayer": {
+      "status": "READY",
+      "assetId": "shoes_001_layer",
+      "path": "/assets/items/shoes/shoes_001_layer.png",
+      "mimeType": "image/png"
+    }
   },
   "metadata": {
-    "colors": [],
+    "colors": ["ivory", "beige"],
     "materials": [],
     "styleIds": ["style_modern_remix"],
     "occasionIds": ["occ_spring_walk"],
     "reviewStatus": "HUMAN_REVIEW_REQUIRED"
   },
-  "culture": { "characteristics": [] },
+  "culture": {
+    "characteristics": [
+      "Giày bệt",
+      "Kín mũi",
+      "Tông trung tính",
+      "Dáng tối giản"
+    ]
+  },
   "render": {
     "layer": "shoes",
     "position": { "x": 0.2, "y": 0.86, "width": 0.6, "height": 0.12 },

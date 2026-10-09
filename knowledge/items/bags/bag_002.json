@@ -4,17 +4,34 @@
   "name": "Túi cầm tay nhỏ, phom gọn (visual brief)",
   "description": "Mẫu demo thay thế cho yêu cầu túi nhỏ; thiết kế và tính ứng dụng cần xác nhận.",
   "assets": {
-    "thumbnail": { "status": "PENDING_ASSET", "assetId": "bag_002_thumb" },
-    "renderLayer": { "status": "PENDING_ASSET", "assetId": "bag_002_layer" }
+    "thumbnail": {
+      "status": "READY",
+      "assetId": "bag_002_thumb",
+      "path": "/assets/thumbnails/bag_002_thumb.png",
+      "mimeType": "image/png"
+    },
+    "renderLayer": {
+      "status": "READY",
+      "assetId": "bag_002_layer",
+      "path": "/assets/items/bags/bag_002_layer.png",
+      "mimeType": "image/png"
+    }
   },
   "metadata": {
-    "colors": [],
+    "colors": ["ivory", "beige"],
     "materials": [],
     "styleIds": ["style_modern_remix"],
     "occasionIds": ["occ_spring_walk"],
     "reviewStatus": "HUMAN_REVIEW_REQUIRED"
   },
-  "culture": { "characteristics": [] },
+  "culture": {
+    "characteristics": [
+      "Túi cầm tay nhỏ",
+      "Phom gọn",
+      "Tông trung tính",
+      "Ít chi tiết"
+    ]
+  },
   "render": {
     "layer": "bag-front",
     "position": { "x": 0.58, "y": 0.52, "width": 0.3, "height": 0.32 },

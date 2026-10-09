@@ -2,13 +2,25 @@
   "id": "top_003",
   "category": "top",
   "name": "Áo lót trắng mỏng (candidate)",
-  "description": "Item demo cho slot lớp lót theo rule_layering_aotac; asset và cấu tạo cần nhóm nội dung xác nhận.",
+  "description": "Lớp áo lót trắng mỏng thử nghiệm, cổ đứng, tay dài; cấu tạo và tính phù hợp lịch sử cần nhóm nội dung xác nhận.",
   "assets": {
-    "thumbnail": { "status": "PENDING_ASSET", "assetId": "top_003_thumb" },
-    "renderLayer": { "status": "PENDING_ASSET", "assetId": "top_003_layer" }
+    "thumbnail": {
+      "status": "READY",
+      "assetId": "top_003_thumb",
+      "path": "/assets/thumbnails/top_003_thumb.png",
+      "mimeType": "image/png"
+    },
+    "renderLayer": {
+      "status": "READY",
+      "assetId": "top_003_layer",
+      "path": "/assets/items/tops/top_003_layer.png",
+      "mimeType": "image/png"
+    }
   },
   "metadata": {
-    "colors": ["white"],
+    "colors": [
+      "white"
+    ],
     "materials": [],
     "styleIds": [],
     "occasionIds": [],
@@ -16,11 +28,20 @@
   },
   "culture": {
     "characteristics": [],
-    "sourceRefs": [{ "sourceId": "rule_layering_aotac" }]
+    "sourceRefs": [
+      {
+        "sourceId": "rule_layering_aotac"
+      }
+    ]
   },
   "render": {
     "layer": "underlayer",
-    "position": { "x": 0.18, "y": 0.18, "width": 0.64, "height": 0.36 },
+    "position": {
+      "x": 0.18,
+      "y": 0.28,
+      "width": 0.64,
+      "height": 0.54
+    },
     "zIndex": 410
   }
 }

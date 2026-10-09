@@ -2,22 +2,47 @@
   "id": "bottom_001",
   "category": "bottom",
   "name": "Quần Lụa Trắng (candidate)",
-  "description": "Mẫu demo cho slot quần; định danh và chi tiết hình thức chờ nhóm nội dung xác nhận.",
+  "description": "Mẫu quần trắng ống rộng, chất liệu mô phỏng lụa, thử nghiệm ghép với áo dài; kiểu dáng và chất liệu cần nhóm nội dung xác nhận.",
   "assets": {
-    "thumbnail": { "status": "PENDING_ASSET", "assetId": "bottom_001_thumb" },
-    "renderLayer": { "status": "PENDING_ASSET", "assetId": "bottom_001_layer" }
+    "thumbnail": {
+      "status": "READY",
+      "assetId": "bottom_001_thumb",
+      "path": "/assets/thumbnails/bottom_001_thumb.png",
+      "mimeType": "image/png"
+    },
+    "renderLayer": {
+      "status": "READY",
+      "assetId": "bottom_001_layer",
+      "path": "/assets/items/bottoms/bottom_001_layer.png",
+      "mimeType": "image/png"
+    }
   },
   "metadata": {
-    "colors": ["white"],
+    "colors": [
+      "white"
+    ],
     "materials": [],
-    "styleIds": ["style_elegant", "style_modern_remix"],
-    "occasionIds": ["occ_graduation", "occ_spring_walk"],
+    "styleIds": [
+      "style_elegant",
+      "style_modern_remix"
+    ],
+    "occasionIds": [
+      "occ_graduation",
+      "occ_spring_walk"
+    ],
     "reviewStatus": "HUMAN_REVIEW_REQUIRED"
   },
-  "culture": { "characteristics": [] },
+  "culture": {
+    "characteristics": []
+  },
   "render": {
     "layer": "bottom",
-    "position": { "x": 0.25, "y": 0.4, "width": 0.5, "height": 0.52 },
+    "position": {
+      "x": 0.25,
+      "y": 0.4,
+      "width": 0.5,
+      "height": 0.52
+    },
     "zIndex": 310
   }
 }

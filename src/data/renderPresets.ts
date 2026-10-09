@@ -35,8 +35,10 @@ export const AVATAR_PRESETS: AvatarPreset[] = [
     description: 'Phom dáng thanh thoát, phù hợp với Áo Tấc, Áo Ngũ Thân và váy/quần suông.',
     assets: {
       base: {
-        status: 'PENDING_ASSET',
+        status: 'READY',
         assetId: 'model_nu_base',
+        path: '/assets/avatars/avatar_001.png',
+        mimeType: 'image/png',
       },
     },
     canvas: { width: 1000, height: 1400 },
@@ -63,8 +65,10 @@ export const AVATAR_PRESETS: AvatarPreset[] = [
     description: 'Phom dáng đĩnh đạc, chuẩn tỷ lệ áo ngũ thân tay chẽn hoặc tay thụng.',
     assets: {
       base: {
-        status: 'PENDING_ASSET',
+        status: 'READY',
         assetId: 'model_nam_base',
+        path: '/assets/avatars/avatar_002.png',
+        mimeType: 'image/png',
       },
     },
     canvas: { width: 1000, height: 1400 },

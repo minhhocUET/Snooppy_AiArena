@@ -83,7 +83,7 @@ export const StylistPage: React.FC = () => {
   const [contextError, setContextError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<OutfitSlot>('top');
   const [outfit, setOutfit] = useState<Outfit>(EMPTY_OUTFIT);
-  const [avatarPresetId, setAvatarPresetId] = useState<string>(AVATAR_PRESETS[0].avatarPresetId);
+  const [avatarPresetId, setAvatarPresetId] = useState<string>('avatar_model_nu');
   const [backgroundPresetId, setBackgroundPresetId] = useState<string>(BACKGROUND_PRESETS[0].backgroundPresetId);
 
   // State: Detail Modal
@@ -363,9 +363,15 @@ export const StylistPage: React.FC = () => {
                 onChange={(event) => setAvatarPresetId(event.target.value)}
                 className="mt-1 w-full rounded-lg bg-[#FFFDF5] border border-[#8B5A2B]/40 px-2 py-1.5 text-xs font-semibold"
               >
-                {AVATAR_PRESETS.map((preset) => (
-                  <option key={preset.avatarPresetId} value={preset.avatarPresetId}>{preset.name}</option>
-                ))}
+                {AVATAR_PRESETS
+                  .filter((preset) =>
+                  ['avatar_model_nu', 'avatar_model_nam'].includes(preset.avatarPresetId)
+                  )
+                  .map((preset) => (
+                    <option key={preset.avatarPresetId} value={preset.avatarPresetId}>
+                    {preset.name}
+                    </option>
+                  ))}
               </select>
             </label>
             <label className="min-w-0 text-xs font-bold text-[#5c3a1e]">

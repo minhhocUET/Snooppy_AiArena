@@ -4,17 +4,34 @@
   "name": "Túi đeo vai nhỏ, ít chi tiết (visual brief)",
   "description": "Mẫu demo để thử yêu cầu túi nhỏ, không quá nổi bật; thiết kế và tính ứng dụng cần xác nhận.",
   "assets": {
-    "thumbnail": { "status": "PENDING_ASSET", "assetId": "bag_001_thumb" },
-    "renderLayer": { "status": "PENDING_ASSET", "assetId": "bag_001_layer" }
+    "thumbnail": {
+      "status": "READY",
+      "assetId": "bag_001_thumb",
+      "path": "/assets/thumbnails/bag_001_thumb.png",
+      "mimeType": "image/png"
+    },
+    "renderLayer": {
+      "status": "READY",
+      "assetId": "bag_001_layer",
+      "path": "/assets/items/bags/bag_001_layer.png",
+      "mimeType": "image/png"
+    }
   },
   "metadata": {
-    "colors": [],
+    "colors": ["ivory", "beige"],
     "materials": [],
     "styleIds": ["style_modern_remix"],
     "occasionIds": ["occ_spring_walk"],
     "reviewStatus": "HUMAN_REVIEW_REQUIRED"
   },
-  "culture": { "characteristics": [] },
+  "culture": {
+    "characteristics": [
+      "Túi đeo vai nhỏ",
+      "Ít chi tiết",
+      "Tông trung tính",
+      "Phom tối giản"
+    ]
+  },
   "render": {
     "layer": "bag-front",
     "position": { "x": 0.58, "y": 0.36, "width": 0.3, "height": 0.36 },

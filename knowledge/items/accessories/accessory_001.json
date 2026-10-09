@@ -2,19 +2,36 @@
   "id": "accessory_001",
   "category": "accessory",
   "name": "Kính gọng mảnh trung tính (visual brief)",
-  "description": "Mẫu demo cho slot phụ kiện; kiểu dáng và tính ứng dụng cần nhóm nội dung xác nhận.",
+  "description": "Mẫu demo cho slot phụ kiện; kiểu dáng kính gọng mảnh tông champagne-gold trung tính, tính ứng dụng cần nhóm nội dung xác nhận.",
   "assets": {
-    "thumbnail": { "status": "PENDING_ASSET", "assetId": "accessory_001_thumb" },
-    "renderLayer": { "status": "PENDING_ASSET", "assetId": "accessory_001_layer" }
+    "thumbnail": {
+      "status": "READY",
+      "assetId": "accessory_001_thumb",
+      "path": "/assets/thumbnails/accessory_001_thumb.png",
+      "mimeType": "image/png"
+    },
+    "renderLayer": {
+      "status": "READY",
+      "assetId": "accessory_001_layer",
+      "path": "/assets/items/accessories/accessory_001_layer.png",
+      "mimeType": "image/png"
+    }
   },
   "metadata": {
-    "colors": [],
+    "colors": ["champagne", "gold", "beige"],
     "materials": [],
     "styleIds": ["style_modern_remix"],
     "occasionIds": ["occ_spring_walk"],
     "reviewStatus": "HUMAN_REVIEW_REQUIRED"
   },
-  "culture": { "characteristics": [] },
+  "culture": {
+    "characteristics": [
+      "Kính gọng mảnh",
+      "Tông trung tính",
+      "Dáng tối giản",
+      "Phụ kiện hiện đại"
+    ]
+  },
   "render": {
     "layer": "face-overlay",
     "position": { "x": 0.32, "y": 0.1, "width": 0.36, "height": 0.12 },
