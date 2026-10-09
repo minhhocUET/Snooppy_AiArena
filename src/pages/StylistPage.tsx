@@ -14,18 +14,34 @@ import {
   OutfitSlot,
   RecommendationResponse,
   RenderLayer,
+  ValidationFinding,
+  ValidationResponse,
+  ValidationStatus,
+  ValidationSuggestion,
 } from '../types';
 import { PlayingCardItem } from '../components/PlayingCardItem';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { AvatarRenderer, isRenderLayerAllowedForSlot } from '../components/avatar/AvatarRenderer';
 import { AVATAR_PRESETS, BACKGROUND_PRESETS } from '../data/renderPresets';
-import { ArrowLeft, Check, Loader2, RotateCcw, Sparkles, X } from 'lucide-react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  Info,
+  Loader2,
+  RotateCcw,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import {
   CatalogApiError,
   getCatalogItems,
   getCatalogOptions,
   getCatalogRecommendation,
   getCulturalRules,
+  validateCatalogOutfit,
 } from '../services/catalogApi';
 
 const CATEGORIES: { id: OutfitSlot; label: string; catalogCategory: ItemCategory }[] = [
@@ -81,6 +97,12 @@ export const StylistPage: React.FC = () => {
   const [recommendationError, setRecommendationError] = useState<string | null>(null);
   const [culturalRules, setCulturalRules] = useState<CulturalRule[]>([]);
   const [isRecommendationApplied, setIsRecommendationApplied] = useState<boolean>(false);
+
+  // State: Outfit Cultural Validation (Phase 5.2)
+  const [validationResult, setValidationResult] = useState<ValidationResponse | null>(null);
+  const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isValidationStale, setIsValidationStale] = useState<boolean>(false);
 
   useEffect(() => {
     let active = true;
@@ -145,6 +167,23 @@ export const StylistPage: React.FC = () => {
     setRecommendationError(null);
     setIsRecommendationApplied(false);
   }, [context.occasionId, context.roleId, context.styleId]);
+
+  // Requirement 10: If context or Outfit changes after validation, mark the previous validation result as stale
+  useEffect(() => {
+    if (validationResult) {
+      setIsValidationStale(true);
+    }
+  }, [
+    context.occasionId,
+    context.roleId,
+    context.styleId,
+    outfit.top,
+    outfit.underlayer,
+    outfit.bottom,
+    outfit.shoes,
+    outfit.bag,
+    outfit.accessory,
+  ]);
 
   const avatarPreset = AVATAR_PRESETS.find((preset) => preset.avatarPresetId === avatarPresetId) ?? AVATAR_PRESETS[0];
   const background = BACKGROUND_PRESETS.find((preset) => preset.backgroundPresetId === backgroundPresetId) ?? BACKGROUND_PRESETS[0];
@@ -248,6 +287,33 @@ export const StylistPage: React.FC = () => {
     setIsRecommendationApplied(true);
   };
 
+  const handleValidateOutfit = async () => {
+    if (isValidating) return;
+    setIsValidating(true);
+    setValidationError(null);
+    setIsValidationStale(false);
+
+    try {
+      const response = await validateCatalogOutfit({
+        context,
+        outfit,
+      });
+      setValidationResult(response.data);
+    } catch (err: any) {
+      setValidationError(err.message || 'Không thể kiểm tra độ phù hợp lúc này. Vui lòng thử lại sau.');
+      setValidationResult(null);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleApplySuggestion = (suggestion: ValidationSuggestion) => {
+    setOutfit((previous) => ({
+      ...previous,
+      [suggestion.slot]: suggestion.suggestedItemId,
+    }));
+  };
+
   return (
     <div
       className="relative flex min-h-screen w-full flex-col select-none overflow-x-hidden text-[#3d2714] md:h-screen md:w-screen md:min-h-0 md:overflow-hidden"
@@ -261,7 +327,7 @@ export const StylistPage: React.FC = () => {
 
       {/* Minimal Top Header - Warm vintage letter style with shadow */}
       <header className="h-10 border-b-2 border-[#8B5A2B]/35 bg-[#FFFDF5] px-4 flex items-center justify-between flex-shrink-0 z-20 shadow-[0_2px_8px_rgba(80,45,15,0.06)]">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => navigate('/')}
             className="flex items-center gap-1.5 text-xs text-[#5c3a1e] hover:text-[#3d2714] transition font-bold cursor-pointer py-1 px-2 rounded-md hover:bg-[#f4ede1]"
@@ -270,8 +336,15 @@ export const StylistPage: React.FC = () => {
             <span>Trang chủ</span>
           </button>
           <div className="h-3.5 w-px bg-[#8B5A2B]/30" />
+          <button
+            onClick={() => navigate('/intro')}
+            className="text-xs text-[#8B5A2B] hover:text-[#5c3a1e] transition font-bold cursor-pointer py-1 px-2 rounded-md hover:bg-[#f4ede1]"
+          >
+            Sứ mệnh & Quy tắc
+          </button>
+          <div className="h-3.5 w-px bg-[#8B5A2B]/30" />
           <span className="min-w-0 truncate text-xs font-bold text-[#8B5A2B] uppercase tracking-normal drop-shadow-2xs">
-            Việt Phục Remix
+            Phòng Thử Đồ (Studio)
           </span>
         </div>
       </header>
@@ -342,6 +415,192 @@ export const StylistPage: React.FC = () => {
                 );
               })}
             </ul>
+
+            {/* Cultural Outfit Validation Section (Phase 5.2) */}
+            <div className="mt-3.5 border-t border-[#8B5A2B]/20 pt-3">
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={handleValidateOutfit}
+                  disabled={isValidating}
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#5c3a1e] px-3 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#432711] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                >
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-300" />
+                      <span>Đang kiểm tra độ phù hợp…</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="h-3.5 w-3.5 text-amber-300" />
+                      <span>Kiểm tra độ phù hợp</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {validationError && (
+                <div className="mt-2 flex items-start justify-between gap-2 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
+                  <p>{validationError}</p>
+                  <button
+                    type="button"
+                    onClick={() => setValidationError(null)}
+                    className="shrink-0 text-amber-700 hover:text-amber-950 cursor-pointer"
+                    aria-label="Đóng lỗi kiểm tra"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {validationResult && (
+                <div className="mt-2.5 rounded-lg border border-[#8B5A2B]/30 bg-[#FFFDF5] p-3 text-xs text-[#3d2714] shadow-xs">
+                  {/* Validation Status Header */}
+                  <div className="flex items-center justify-between gap-2 border-b border-[#8B5A2B]/20 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      {validationResult.status === 'PASS' && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-900">
+                          <Check className="h-3 w-3 text-emerald-700" />
+                          ĐẠT CHUẨN (PASS)
+                        </span>
+                      )}
+                      {validationResult.status === 'WARN' && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                          <AlertTriangle className="h-3 w-3 text-amber-700" />
+                          CẦN LƯU Ý (WARN)
+                        </span>
+                      )}
+                      {validationResult.status === 'NEEDS_ADJUSTMENT' && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-900">
+                          <AlertCircle className="h-3 w-3 text-rose-700" />
+                          CẦN ĐIỀU CHỈNH (NEEDS_ADJUSTMENT)
+                        </span>
+                      )}
+                    </div>
+                    {isValidationStale && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold text-amber-900">
+                        Đã đổi đồ, bấm kiểm tra lại
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Summary */}
+                  <p className="mt-2 text-stone-700 leading-relaxed italic bg-[#fbf7ee] p-2 rounded border border-[#8B5A2B]/10">
+                    "{validationResult.summary}"
+                  </p>
+
+                  {/* Findings List */}
+                  {validationResult.findings.length > 0 && (
+                    <div className="mt-2.5 space-y-2">
+                      <p className="font-bold text-[11px] uppercase tracking-wide text-[#8B5A2B]">
+                        Chi tiết đánh giá ({validationResult.findings.length}):
+                      </p>
+                      <div className="space-y-1.5">
+                        {validationResult.findings.map((finding, idx) => {
+                          const slotLabel = finding.slot ? CATEGORIES.find((c) => c.id === finding.slot)?.label ?? finding.slot : null;
+                          const suggestedItem = finding.suggestion?.suggestedItemId
+                            ? itemsById.get(finding.suggestion.suggestedItemId)
+                            : null;
+
+                          return (
+                            <div
+                              key={idx}
+                              className={`rounded-md border p-2 text-[11px] ${
+                                finding.severity === 'ERROR'
+                                  ? 'border-rose-200 bg-rose-50/60 text-rose-950'
+                                  : finding.severity === 'WARNING'
+                                    ? 'border-amber-200 bg-amber-50/60 text-amber-950'
+                                    : 'border-blue-200 bg-blue-50/60 text-blue-950'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 font-bold">
+                                <span className="rounded px-1 py-0.2 text-[9px] font-extrabold uppercase">
+                                  {finding.severity === 'ERROR'
+                                    ? '[LỖI]'
+                                    : finding.severity === 'WARNING'
+                                      ? '[LƯU Ý]'
+                                      : '[THÔNG TIN]'}
+                                </span>
+                                {slotLabel && <span className="text-[#5c3a1e]">Vị trí {slotLabel}:</span>}
+                                <span>{finding.message}</span>
+                              </div>
+
+                              {finding.detail && (
+                                <p className="mt-1 text-stone-600 leading-tight">{finding.detail}</p>
+                              )}
+
+                              {/* Interactive Grounded Suggestion with explicit user click */}
+                              {finding.suggestion && (
+                                <div className="mt-1.5 flex items-center justify-between gap-2 rounded border border-[#8B5A2B]/20 bg-white/90 p-1.5">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] text-stone-700">
+                                      <span className="font-bold text-[#8B5A2B]">Gợi ý: </span>
+                                      {suggestedItem
+                                        ? `Mặc '${suggestedItem.name}'`
+                                        : finding.suggestion.suggestedItemId === null
+                                          ? `Tháo món đồ ở vị trí ${slotLabel ?? finding.suggestion.slot}`
+                                          : `Mã ${finding.suggestion.suggestedItemId}`}
+                                    </p>
+                                    {finding.suggestion.reason && (
+                                      <p className="text-[9px] text-stone-500 truncate">{finding.suggestion.reason}</p>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApplySuggestion(finding.suggestion!)}
+                                    className="shrink-0 rounded bg-[#8B5A2B] px-2 py-1 text-[10px] font-bold text-white shadow-2xs hover:bg-[#6f4520] cursor-pointer"
+                                  >
+                                    Áp dụng
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Applied Rules */}
+                  {validationResult.appliedRuleIds.length > 0 && (
+                    <div className="mt-2.5 border-t border-[#8B5A2B]/15 pt-2">
+                      <p className="text-[10px] font-bold uppercase text-[#8B5A2B]">
+                        Quy tắc văn hóa liên quan:
+                      </p>
+                      <ul className="mt-1 space-y-0.5 text-[10px] text-stone-600">
+                        {validationResult.appliedRuleIds.map((ruleId) => {
+                          const rule = rulesById.get(ruleId);
+                          return (
+                            <li key={ruleId} className="list-inside list-disc">
+                              <span className="font-semibold">{rule?.category ? `[${rule.category}] ` : ''}</span>
+                              {rule?.statement ?? ruleId}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex items-center justify-between border-t border-[#8B5A2B]/20 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setValidationResult(null)}
+                      className="rounded px-2 py-1 text-[10px] text-stone-500 hover:bg-[#f6eee2] cursor-pointer"
+                    >
+                      Đóng kết quả
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleValidateOutfit}
+                      disabled={isValidating}
+                      className="inline-flex items-center gap-1 rounded bg-[#8B5A2B]/15 px-2.5 py-1 text-[10px] font-bold text-[#5c3a1e] hover:bg-[#8B5A2B]/25 cursor-pointer"
+                    >
+                      Kiểm tra lại
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 

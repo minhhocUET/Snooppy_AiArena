@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -474,9 +474,17 @@ export class KnowledgeCatalogRepository {
   }
 
   private isValidAssetRef(assetRef: string): boolean {
-    if (/^(?:[a-z]+:)?\/\//i.test(assetRef) || assetRef.startsWith('/')) return false;
-    const assetPath = resolve(this.repoRoot, assetRef);
+    if (/^(?:[a-z]+:)?\/\//i.test(assetRef)) return false;
+    const cleanRef = assetRef.startsWith('/') ? assetRef.slice(1) : assetRef;
+    const assetPath = resolve(this.repoRoot, cleanRef);
     const relativePath = relative(this.repoRoot, assetPath);
-    return relativePath !== '' && !relativePath.startsWith('..') && existsSync(assetPath);
+    if (relativePath === '' || relativePath.startsWith('..')) return false;
+    if (!existsSync(assetPath)) return false;
+    try {
+      const stats = statSync(assetPath);
+      return stats.isFile() && stats.size > 0;
+    } catch {
+      return false;
+    }
   }
 }

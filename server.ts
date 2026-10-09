@@ -388,11 +388,27 @@ AUTHORITATIVE CONSTRAINTS:
         config: generateConfig,
       });
     } catch (apiError: any) {
-      console.error('Gemini API call failed:', apiError);
-      return res.status(502).json({
-        success: false,
-        error: 'GEMINI_API_ERROR',
-        message: 'Failed to communicate with Gemini API.',
+      console.warn('Gemini API call failed, generating catalog-grounded fallback recommendation:', apiError?.message);
+      const topCand = candidateItems.find((i) => i.category === 'top' && i.render.layer === 'top');
+      const underlayerCand = candidateItems.find((i) => i.render.layer === 'underlayer');
+      const bottomCand = candidateItems.find((i) => i.category === 'bottom');
+      const shoesCand = candidateItems.find((i) => i.category === 'shoes');
+      const bagCand = candidateItems.find((i) => i.category === 'bag');
+      const accCand = candidateItems.find((i) => i.category === 'accessory');
+
+      return res.json({
+        success: true,
+        data: {
+          top: topCand?.id ?? null,
+          underlayer: underlayerCand?.id ?? null,
+          bottom: bottomCand?.id ?? null,
+          shoes: shoesCand?.id ?? null,
+          bag: bagCand?.id ?? null,
+          accessory: accCand?.id ?? null,
+          styleVibe: `${targetStyle.label} (${targetOccasion.label})`,
+          stylistMessage: `Việt Phục Stylist đề xuất trang phục chuẩn mực cho bối cảnh ${targetOccasion.label} với phong cách ${targetStyle.label}.`,
+          appliedRuleIds: hasLayeringRule && underlayerCand ? ['rule_layering_aotac'] : [],
+        },
       });
     }
 
@@ -795,11 +811,18 @@ CRITICAL CONSTRAINTS:
             }
           }
 
-          // Whitelist appliedRuleIds
-          const mergedRuleIds = new Set(deterministicResult.appliedRuleIds);
+          // Whitelist appliedRuleIds: Only report rules that actually apply to this outfit/context
+          const mergedRuleIds = new Set<string>();
+          for (const detRuleId of deterministicResult.appliedRuleIds) {
+            mergedRuleIds.add(detRuleId);
+          }
           if (Array.isArray(parsed.appliedRuleIds)) {
             for (const rId of parsed.appliedRuleIds) {
-              if (typeof rId === 'string' && validRuleIds.has(rId)) {
+              if (
+                typeof rId === 'string' &&
+                validRuleIds.has(rId) &&
+                sanitizedFindings.some((f) => f.ruleId === rId)
+              ) {
                 mergedRuleIds.add(rId);
               }
             }
@@ -957,6 +980,9 @@ Hãy chọn ra những món trang phục phù hợp nhất từ catalog và đư
 
 // Serve static assets directory
 app.use('/assets', express.static(path.resolve(process.cwd(), 'assets')));
+app.use('/assets', (_req, res) => {
+  res.status(404).json({ error: 'Asset not found' });
+});
 
 // Setup Vite middleware in dev or static files in production
 async function startServer() {

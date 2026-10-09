@@ -128,3 +128,11 @@ export async function validateCatalogOutfit(
 
   return payload as CatalogValidationResponse;
 }
+
+export async function validateOutfit(
+  request: ValidationRequest,
+): Promise<ValidationResponse> {
+  const response = await validateCatalogOutfit(request);
+  return response.data;
+}
+
